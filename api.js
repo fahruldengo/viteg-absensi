@@ -24,6 +24,20 @@ const API = {
     try { j = await res.json(); } catch (e) { throw new Error('Respons server tidak valid. Cek deployment Apps Script.'); }
     if (!j.ok) throw new Error(j.error || 'Terjadi kesalahan');
     return j.data;
+  },
+  // POST text/plain = simple request (tanpa CORS preflight), untuk payload besar (foto)
+  async post(action, body = {}) {
+    if (!API.configured()) throw new Error('API_URL belum diisi di config.js');
+    let res;
+    try {
+      res = await fetch(CFG.API_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify({ ...body, action }) });
+    } catch (e) {
+      throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet.');
+    }
+    let j;
+    try { j = await res.json(); } catch (e) { throw new Error('Respons server tidak valid. Cek deployment Apps Script.'); }
+    if (!j.ok) throw new Error(j.error || 'Terjadi kesalahan');
+    return j.data;
   }
 };
 

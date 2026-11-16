@@ -40,6 +40,21 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 - Sesi admin berlaku 6 jam sejak aktivitas terakhir.
 - Menghapus karyawan tidak menghapus riwayat absensinya. Untuk karyawan keluar, cukup set **Nonaktif**.
 
+## Foto lokasi & GPS
+
+- Foto diambil **langsung dari kamera** (tidak bisa dari galeri), diberi watermark jam server, tanggal, nama, koordinat, akurasi, dan jarak ke kantor.
+- Foto berlaku 3 menit. Ganti nama karyawan = wajib foto ulang.
+- Foto disimpan di Google Drive folder **Foto Absensi/YYYY-MM** milik akun Apps Script (privat). Admin melihatnya lewat tombol **Foto** di panel admin.
+- Alamat lokasi diisi otomatis (Google Maps reverse geocode).
+- Bila radius > 0, akurasi GPS di atas batas (default 100 m) ditolak.
+- Menghapus data absensi juga memindahkan fotonya ke Sampah Drive.
+- Kamera butuh HTTPS. GitHub Pages sudah HTTPS.
+
+### Update dari versi tanpa foto
+1. Tempel `Code.gs` baru → jalankan `setup` sekali (izinkan **Google Drive** & **Maps**). Kolom baru ditambahkan otomatis, data lama aman.
+2. Terapkan → Kelola deployment → Edit → **Versi baru** → Terapkan.
+3. Upload `index.html`, `absen.js`, `api.js`, `admin.html`, `admin.js`, `style.css`, `README.md`. **`config.js` tidak perlu diubah.**
+
 ## Catatan keamanan
 
 PIN & password disimpan sebagai hash SHA-256. Karena API memakai GET, PIN terkirim di URL (lewat HTTPS) — cukup untuk absensi internal, tetapi jangan pakai PIN yang sama dengan PIN bank.

@@ -146,6 +146,14 @@
               <div class="hint">0 = absen bisa dari mana saja (lokasi tetap dicatat bila diizinkan). Disarankan 100–200 m.</div></div>
           </div>
 
+          <h3>Foto &amp; GPS</h3>
+          <div class="form-grid">
+            <div><label class="lbl" for="s_foto">Foto lokasi saat absen</label>
+              <select id="s_foto" class="inp"><option value="ya">Wajib</option><option value="tidak">Opsional</option></select></div>
+            <div><label class="lbl" for="s_acc">Akurasi GPS maksimal (meter)</label><input id="s_acc" type="number" min="0" max="5000" class="inp" required></div>
+            <div class="full hint">Foto disimpan di Google Drive folder “Foto Absensi” milik akun Apps Script. Akurasi hanya dicek bila radius &gt; 0; 0 = tidak dicek. Disarankan 50–100 m.</div>
+          </div>
+
           <h3>Keamanan</h3>
           <label class="lbl" for="s_pw">Password admin baru</label>
           <input id="s_pw" type="password" class="inp" placeholder="Kosongkan jika tidak diganti" autocomplete="new-password">

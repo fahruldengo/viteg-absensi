@@ -10,7 +10,11 @@
  * 5. Salin URL /exec ke config.js (API_URL).
  *
  * Password admin awal: admin123  (segera ganti di menu Pengaturan)
- * Semua endpoint memakai GET agar tidak memicu CORS preflight.
+ * Endpoint memakai GET; absen dengan foto memakai POST text/plain
+ * (simple request, tetap tanpa CORS preflight).
+ *
+ * UPDATE dari versi tanpa foto: tempel ulang file ini, jalankan `setup`
+ * sekali lagi (izinkan akses Google Drive & Maps), lalu deploy Versi baru.
  */
 
 const TZ = 'Asia/Makassar'; // WITA. Samakan dengan TIMEZONE di config.js
@@ -20,7 +24,8 @@ const SH = { K: 'Karyawan', A: 'Absensi', P: 'Pengaturan' };
 const HEAD = {
   Karyawan:   ['ID', 'Nama', 'Jabatan', 'Divisi', 'PIN_Hash', 'Status', 'Dibuat'],
   Absensi:    ['ID', 'Tanggal', 'KaryawanID', 'Nama', 'JamMasuk', 'JamPulang', 'Status',
-               'TelatMenit', 'LokasiMasuk', 'LokasiPulang', 'JarakMasuk', 'Keterangan', 'Diubah'],
+               'TelatMenit', 'LokasiMasuk', 'LokasiPulang', 'JarakMasuk', 'Keterangan', 'Diubah',
+               'FotoMasuk', 'FotoPulang', 'AlamatMasuk', 'AlamatPulang'],
   Pengaturan: ['Key', 'Value']
 };
 
@@ -31,8 +36,12 @@ const DEF = {
   toleransi_menit: '15',
   kantor_lat: '',
   kantor_lng: '',
-  radius_meter: '0' // 0 = tanpa batas lokasi
+  radius_meter: '0',   // 0 = tanpa batas lokasi
+  wajib_foto: 'ya',    // ya | tidak
+  akurasi_maks: '100'  // meter; 0 = tidak dicek
 };
+
+const FOTO_MAX_BYTES = 1500000; // batas ukuran foto (base64) per absen
 
 const STATUS = ['Hadir', 'Terlambat', 'Dinas Luar', 'Izin', 'Sakit', 'Cuti', 'Alpa'];
 const STATUS_HADIR = ['Hadir', 'Terlambat', 'Dinas Luar'];
@@ -40,7 +49,7 @@ const STATUS_HADIR = ['Hadir', 'Terlambat', 'Dinas Luar'];
 /* ================= SETUP ================= */
 
 function setup() {
-  Object.keys(HEAD).forEach(n => sheet_(n));
+  Object.keys(HEAD).forEach(n => rows_(n)); // buat sheet / upgrade header kolom baru
   const st = rows_(SH.P);
   Object.keys(DEF).forEach(k => {
     if (!st.find(r => r.Key === k)) setSetting_(k, DEF[k]);
@@ -48,6 +57,8 @@ function setup() {
   if (!st.find(r => r.Key === 'admin_password_hash')) {
     setSetting_('admin_password_hash', hash_('admin123'));
   }
+  folderFoto_(); // buat folder foto & minta izin Drive
+  try { Maps.newGeocoder(); } catch (e) {} // minta izin Maps
   return 'Setup selesai';
 }
 
@@ -69,6 +80,7 @@ const ADMIN = {
   absensi: listAbsensi_,
   saveAbsensi: saveAbsensi_,
   deleteAbsensi: deleteAbsensi_,
+  foto: foto_,
   settings: getSettings_,
   saveSettings: saveSettings_
 };
@@ -77,6 +89,18 @@ function doGet(e) {
   const p = (e && e.parameter) || {};
   let out;
   try {
+    out = { ok: true, data: route_(p) };
+  } catch (err) {
+    out = { ok: false, error: (err && err.message) || String(err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  let out;
+  try {
+    const p = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     out = { ok: true, data: route_(p) };
   } catch (err) {
     out = { ok: false, error: (err && err.message) || String(err) };
@@ -104,6 +128,8 @@ function info_() {
     radius_meter: Number(st.radius_meter) || 0,
     kantor_lat: st.kantor_lat,
     kantor_lng: st.kantor_lng,
+    wajib_foto: st.wajib_foto === 'ya',
+    akurasi_maks: Number(st.akurasi_maks) || 0,
     server_ms: Date.now(),
     tanggal: today_(),
     karyawan: rows_(SH.K)
@@ -130,16 +156,28 @@ function absen_(p) {
     const st = settings_();
     const tgl = today_();
     const jam = nowTime_();
-    const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+    const lat = parseFloat(p.lat), lng = parseFloat(p.lng), acc = parseFloat(p.acc);
     const hasLoc = isFinite(lat) && isFinite(lng);
     const rad = Number(st.radius_meter) || 0;
+    const accMax = Number(st.akurasi_maks) || 0;
     let jarak = '';
+
+    const foto = String(p.foto || '');
+    if (foto) {
+      if (foto.indexOf('data:image/jpeg;base64,') !== 0) throw new Error('Format foto tidak valid');
+      if (foto.length > FOTO_MAX_BYTES) throw new Error('Ukuran foto terlalu besar');
+    } else if (st.wajib_foto === 'ya') {
+      throw new Error('Foto lokasi wajib diambil sebelum absen');
+    }
 
     if (hasLoc && st.kantor_lat && st.kantor_lng) {
       jarak = Math.round(dist_(lat, lng, Number(st.kantor_lat), Number(st.kantor_lng)));
     }
     if (rad > 0 && st.kantor_lat && st.kantor_lng) {
       if (!hasLoc) throw new Error('Lokasi wajib diaktifkan untuk absen');
+      if (accMax > 0 && isFinite(acc) && acc > accMax) {
+        throw new Error('Akurasi GPS terlalu rendah (±' + Math.round(acc) + ' m, maks ' + accMax + ' m). Pindah ke area terbuka lalu coba lagi.');
+      }
       if (jarak > rad) {
         throw new Error('Anda berada di luar area kantor (' + jarak + ' m, maksimal ' + rad + ' m)');
       }
@@ -150,6 +188,7 @@ function absen_(p) {
     if (p.tipe === 'masuk') {
       if (rec && rec.JamMasuk) throw new Error('Anda sudah absen masuk hari ini pukul ' + rec.JamMasuk.slice(0, 5));
       if (rec && !STATUS_HADIR.includes(rec.Status)) throw new Error('Hari ini Anda tercatat ' + rec.Status + '. Hubungi admin.');
+      const fotoId = foto ? simpanFoto_(foto, tgl, k, 'masuk', jam) : '';
       const telat = Math.max(0, toMin_(jam) - toMin_(st.jam_masuk));
       const terlambat = telat > (Number(st.toleransi_menit) || 0);
       const obj = {
@@ -160,7 +199,9 @@ function absen_(p) {
         TelatMenit: String(terlambat ? telat : 0),
         LokasiMasuk: lok, LokasiPulang: '', JarakMasuk: String(jarak),
         Keterangan: rec ? rec.Keterangan : '',
-        Diubah: stamp_()
+        Diubah: stamp_(),
+        FotoMasuk: fotoId, FotoPulang: '',
+        AlamatMasuk: hasLoc ? alamat_(lat, lng) : '', AlamatPulang: ''
       };
       writeObj_(SH.A, obj, rec ? rec._row : null);
       return { tipe: 'masuk', nama: k.Nama, jam: jam, status: obj.Status, telat: Number(obj.TelatMenit) };
@@ -171,6 +212,8 @@ function absen_(p) {
     if (rec.JamPulang) throw new Error('Anda sudah absen pulang pukul ' + rec.JamPulang.slice(0, 5));
     rec.JamPulang = jam;
     rec.LokasiPulang = lok;
+    rec.FotoPulang = foto ? simpanFoto_(foto, tgl, k, 'pulang', jam) : '';
+    rec.AlamatPulang = hasLoc ? alamat_(lat, lng) : '';
     rec.Diubah = stamp_();
     writeObj_(SH.A, rec, rec._row);
     return {
@@ -311,13 +354,29 @@ function deleteAbsensi_(p) {
     const a = rows_(SH.A).find(x => x.ID === p.id);
     if (!a) throw new Error('Data absensi tidak ditemukan');
     sheet_(SH.A).deleteRow(a._row);
+    [a.FotoMasuk, a.FotoPulang].forEach(id => {
+      if (id) { try { DriveApp.getFileById(id).setTrashed(true); } catch (e) {} }
+    });
     return true;
   });
+}
+
+function foto_(p) {
+  const id = String(p.id || '');
+  const ada = id && rows_(SH.A).some(a => a.FotoMasuk === id || a.FotoPulang === id);
+  if (!ada) throw new Error('Foto tidak ditemukan');
+  const f = DriveApp.getFileById(id);
+  return {
+    data: 'data:image/jpeg;base64,' + Utilities.base64Encode(f.getBlob().getBytes()),
+    url: f.getUrl(),
+    nama: f.getName()
+  };
 }
 
 function getSettings_() {
   const st = settings_();
   delete st.admin_password_hash;
+  delete st.folder_foto_id;
   st.timezone = TZ;
   return st;
 }
@@ -335,6 +394,9 @@ function saveSettings_(p) {
       throw new Error('Koordinat kantor tidak valid');
     }
     if (rad > 0 && !(lat && lng)) throw new Error('Isi koordinat kantor jika radius diaktifkan');
+    const cur = settings_();
+    const accMax = parseInt(p.akurasi_maks === undefined || p.akurasi_maks === '' ? cur.akurasi_maks : p.akurasi_maks, 10);
+    if (!(accMax >= 0 && accMax <= 5000)) throw new Error('Akurasi maksimal tidak valid');
 
     setSetting_('nama_instansi', String(p.nama_instansi || '').trim() || DEF.nama_instansi);
     setSetting_('jam_masuk', p.jam_masuk);
@@ -343,6 +405,8 @@ function saveSettings_(p) {
     setSetting_('radius_meter', rad);
     setSetting_('kantor_lat', lat);
     setSetting_('kantor_lng', lng);
+    setSetting_('wajib_foto', p.wajib_foto === 'tidak' || p.wajib_foto === 'ya' ? p.wajib_foto : cur.wajib_foto);
+    setSetting_('akurasi_maks', accMax);
 
     if (p.password_baru) {
       if (String(p.password_baru).length < 6) throw new Error('Password baru minimal 6 karakter');
@@ -386,8 +450,13 @@ function sheet_(name) {
 }
 
 function rows_(name) {
-  const v = sheet_(name).getDataRange().getDisplayValues();
-  const h = v.shift() || [];
+  const s = sheet_(name);
+  const v = s.getDataRange().getDisplayValues();
+  let h = v.shift() || [];
+  if (HEAD[name] && h.length < HEAD[name].length) { // upgrade kolom baru
+    s.getRange(1, 1, 1, HEAD[name].length).setNumberFormat('@').setValues([HEAD[name]]).setFontWeight('bold');
+    h = HEAD[name];
+  }
   const out = [];
   v.forEach((r, i) => {
     if (r[0] === '') return;
@@ -428,7 +497,9 @@ function pubAbs_(a) {
     id: a.ID, tanggal: a.Tanggal, karyawanId: a.KaryawanID, nama: a.Nama,
     jamMasuk: a.JamMasuk, jamPulang: a.JamPulang, status: a.Status,
     telat: Number(a.TelatMenit) || 0, lokasiMasuk: a.LokasiMasuk, lokasiPulang: a.LokasiPulang,
-    jarak: a.JarakMasuk, ket: a.Keterangan, diubah: a.Diubah
+    jarak: a.JarakMasuk, ket: a.Keterangan, diubah: a.Diubah,
+    fotoMasuk: a.FotoMasuk || '', fotoPulang: a.FotoPulang || '',
+    alamatMasuk: a.AlamatMasuk || '', alamatPulang: a.AlamatPulang || ''
   };
 }
 
@@ -467,4 +538,38 @@ function dist_(lat1, lng1, lat2, lng2) {
   const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* ================= FOTO & ALAMAT ================= */
+
+function folderFoto_() {
+  const id = settings_().folder_foto_id;
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) {} }
+  const f = DriveApp.createFolder('Foto Absensi');
+  setSetting_('folder_foto_id', f.getId());
+  return f;
+}
+
+function subFolder_(parent, name) {
+  const it = parent.getFoldersByName(name);
+  return it.hasNext() ? it.next() : parent.createFolder(name);
+}
+
+function simpanFoto_(dataUrl, tgl, k, tipe, jam) {
+  const bytes = Utilities.base64Decode(dataUrl.split(',')[1]);
+  const nama = tgl + '_' + k.ID + '_' + tipe + '_' + jam.replace(/:/g, '') + '.jpg';
+  const blob = Utilities.newBlob(bytes, 'image/jpeg', nama);
+  const folder = subFolder_(folderFoto_(), tgl.slice(0, 7)); // per bulan: 2026-11
+  const file = folder.createFile(blob);
+  file.setDescription(k.Nama + ' — absen ' + tipe + ' ' + tgl + ' ' + jam);
+  return file.getId();
+}
+
+function alamat_(lat, lng) {
+  try {
+    const r = Maps.newGeocoder().setLanguage('id').reverseGeocode(lat, lng);
+    return (r && r.results && r.results[0] && r.results[0].formatted_address) || '';
+  } catch (e) {
+    return '';
+  }
 }

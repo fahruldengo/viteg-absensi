@@ -45,10 +45,25 @@
         <div><span>Status</span><b id="stStatus">—</b></div>
       </div>
 
-      <label class="lbl" for="pin">PIN</label>
-      <input id="pin" class="inp pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" autocomplete="off">
+      <label class="lbl">Foto Lokasi <span id="fotoReq" class="req"></span></label>
+      <div class="cam" id="cam">
+        <video id="video" playsinline muted autoplay class="hidden"></video>
+        <img id="snap" class="hidden" alt="Foto lokasi">
+        <div class="cam-empty" id="camEmpty">
+          <button type="button" id="btnCam" class="btn btn-dark">Buka Kamera</button>
+          <small id="camHint">Foto diambil langsung dari kamera, lengkap dengan waktu & koordinat.</small>
+        </div>
+      </div>
+      <div class="cam-actions" id="camActions">
+        <button type="button" id="btnFlip" class="btn btn-ghost btn-sm hidden">Ganti kamera</button>
+        <button type="button" id="btnShot" class="btn btn-primary hidden">Ambil Foto</button>
+        <button type="button" id="btnRetake" class="btn btn-ghost btn-sm hidden">Ulangi foto</button>
+      </div>
 
       <div class="loc wait" id="loc"><span class="loc-dot"></span><span id="locText">Mendeteksi lokasi…</span></div>
+
+      <label class="lbl" for="pin">PIN</label>
+      <input id="pin" class="inp pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" autocomplete="off">
 
       <div class="btn-row">
         <button id="btnMasuk" class="btn btn-primary btn-lg" disabled>Absen Masuk</button>

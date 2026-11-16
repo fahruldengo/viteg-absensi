@@ -119,7 +119,7 @@
           <td>${U.badge(r && r.status)}</td>
           <td>${r && r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
           <td class="act">${r
-            ? `<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`
+            ? `${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">${r.fotoMasuk || r.fotoPulang ? 'Foto' : 'Lokasi'}</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`
             : `<button class="btn btn-ghost btn-sm" data-isi="${U.esc(x.id)}">Isi</button>`}</td>
         </tr>`;
       }).join('');
@@ -134,10 +134,10 @@
     if (!b) return;
     const tgl = $('dTanggal').value || today();
     if (b.dataset.isi) openAbsensiForm({ tanggal: tgl, karyawanId: b.dataset.isi, status: 'Izin' }, loadDashboard);
-    if (b.dataset.edit) {
-      const x = (S.dashList || []).find(i => i.rec && i.rec.id === b.dataset.edit);
-      if (x) openAbsensiForm(x.rec, loadDashboard);
-    }
+    const id = b.dataset.edit || b.dataset.detail;
+    const x = id && (S.dashList || []).find(i => i.rec && i.rec.id === id);
+    if (x && b.dataset.edit) openAbsensiForm(x.rec, loadDashboard);
+    if (x && b.dataset.detail) openDetail(x.rec);
   });
 
   /* ================= ABSENSI ================= */
@@ -177,6 +177,7 @@
     } else {
       $('aBody').innerHTML = list.map(r => {
         const loc = [mapLink(r.lokasiMasuk, 'Masuk'), mapLink(r.lokasiPulang, 'Pulang')].filter(Boolean).join(' · ');
+        const nFoto = (r.fotoMasuk ? 1 : 0) + (r.fotoPulang ? 1 : 0);
         return `<tr>
           <td class="num">${U.fmtTgl(r.tanggal)}</td>
           <td><b>${U.esc(r.nama)}</b><span class="sub">${U.esc(r.karyawanId)}</span></td>
@@ -186,7 +187,7 @@
           <td>${U.badge(r.status)}</td>
           <td>${loc || '<span class="muted">—</span>'}${r.jarak ? `<span class="sub">${U.esc(r.jarak)} m</span>` : ''}</td>
           <td>${r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
-          <td class="act"><button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button></td>
+          <td class="act">${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">${nFoto ? 'Foto (' + nFoto + ')' : 'Lokasi'}</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button></td>
         </tr>`;
       }).join('');
     }
@@ -218,6 +219,10 @@
       const r = S.absensi.find(x => x.id === b.dataset.edit);
       if (r) openAbsensiForm(r, loadAbsensi);
     }
+    if (b.dataset.detail) {
+      const r = S.absensi.find(x => x.id === b.dataset.detail);
+      if (r) openDetail(r);
+    }
     if (b.dataset.del) {
       const r = S.absensi.find(x => x.id === b.dataset.del);
       if (!r || !confirm(`Hapus absensi ${r.nama} tanggal ${U.fmtTgl(r.tanggal)}?`)) return;
@@ -232,11 +237,12 @@
 
   function exportCSV() {
     if (!S.absensi.length) return U.toast('Tidak ada data untuk diekspor', 'err');
-    const head = ['Tanggal', 'ID Karyawan', 'Nama', 'Jam Masuk', 'Jam Pulang', 'Durasi', 'Status', 'Telat (menit)', 'Lokasi Masuk', 'Lokasi Pulang', 'Jarak Masuk (m)', 'Keterangan'];
+    const head = ['Tanggal', 'ID Karyawan', 'Nama', 'Jam Masuk', 'Jam Pulang', 'Durasi', 'Status', 'Telat (menit)', 'Lokasi Masuk', 'Lokasi Pulang', 'Jarak Masuk (m)', 'Alamat Masuk', 'Alamat Pulang', 'Foto Masuk', 'Foto Pulang', 'Keterangan'];
+    const fl = id => id ? 'https://drive.google.com/file/d/' + id + '/view' : '';
     const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [head.map(q).join(';')].concat(
       [...S.absensi].reverse().map(r => [r.tanggal, r.karyawanId, r.nama, r.jamMasuk, r.jamPulang, U.durasi(r.jamMasuk, r.jamPulang).replace('—', ''),
-        r.status, r.telat, r.lokasiMasuk, r.lokasiPulang, r.jarak, r.ket].map(q).join(';'))
+        r.status, r.telat, r.lokasiMasuk, r.lokasiPulang, r.jarak, r.alamatMasuk, r.alamatPulang, fl(r.fotoMasuk), fl(r.fotoPulang), r.ket].map(q).join(';'))
     );
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
@@ -311,6 +317,55 @@
       }
     });
   }
+
+  /* ---------- Detail foto & lokasi ---------- */
+  const fotoCache = new Map();
+  const hasDetail = r => !!(r.fotoMasuk || r.fotoPulang || r.lokasiMasuk || r.lokasiPulang);
+
+  function fotoBox(label, jam, fotoId, lokasi, alamat, extra) {
+    return `<div class="foto-box">
+      <div class="ph" ${fotoId ? `data-foto="${U.esc(fotoId)}"` : ''}>${fotoId ? '<span class="spinner"></span>' : 'Tidak ada foto'}</div>
+      <div class="meta"><b>${label} · ${U.hm(jam)}</b>
+        ${alamat ? U.esc(alamat) + '<br>' : ''}
+        ${lokasi ? `${U.esc(lokasi)} · ${mapLink(lokasi, 'Buka peta')}` : '<span class="muted">Lokasi tidak tercatat</span>'}
+        ${extra || ''}
+      </div></div>`;
+  }
+
+  function openDetail(r) {
+    openModal(`
+      <h3>${U.esc(r.nama)}</h3>
+      <p class="muted" style="margin:0;font-size:13px">${U.esc(r.karyawanId)} · ${U.fmtTgl(r.tanggal)} · ${U.badge(r.status)}</p>
+      <div class="foto-grid">
+        ${fotoBox('Masuk', r.jamMasuk, r.fotoMasuk, r.lokasiMasuk, r.alamatMasuk, r.jarak ? `<br>${U.esc(r.jarak)} m dari kantor` : '')}
+        ${fotoBox('Pulang', r.jamPulang, r.fotoPulang, r.lokasiPulang, r.alamatPulang)}
+      </div>
+      <div class="form-actions"><button type="button" class="btn btn-ghost" data-close>Tutup</button></div>`);
+    $('modal').classList.add('wide');
+    $('modal').querySelectorAll('[data-foto]').forEach(async el => {
+      const id = el.dataset.foto;
+      try {
+        if (!fotoCache.has(id)) fotoCache.set(id, await adm('foto', { id }));
+        const f = fotoCache.get(id);
+        el.innerHTML = `<img src="${f.data}" alt="Foto absen">`;
+        el.insertAdjacentHTML('afterend', `<div class="meta" style="padding-top:0"><a class="loc-link" href="${U.esc(f.url)}" target="_blank" rel="noopener">Buka di Google Drive</a></div>`);
+      } catch (e) {
+        el.textContent = e.message;
+      }
+    });
+  }
+
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.foto-box .ph img');
+    if (img) {
+      const z = document.createElement('div');
+      z.className = 'zoom';
+      z.innerHTML = `<img src="${img.src}" alt="">`;
+      z.onclick = () => z.remove();
+      document.body.appendChild(z);
+      return;
+    }
+  });
 
   /* ================= KARYAWAN ================= */
   async function loadKaryawan(silent) {
@@ -425,6 +480,8 @@
       $('s_lat').value = s.kantor_lat;
       $('s_lng').value = s.kantor_lng;
       $('s_rad').value = s.radius_meter;
+      $('s_foto').value = s.wajib_foto === 'tidak' ? 'tidak' : 'ya';
+      $('s_acc').value = s.akurasi_maks;
       $('s_pw').value = $('s_pw2').value = '';
     } catch (e) { U.toast(e.message, 'err'); }
   }
@@ -455,6 +512,7 @@
         jam_masuk: $('s_masuk').value, jam_pulang: $('s_pulang').value,
         toleransi_menit: $('s_tol').value, radius_meter: $('s_rad').value,
         kantor_lat: $('s_lat').value.trim(), kantor_lng: $('s_lng').value.trim(),
+        wajib_foto: $('s_foto').value, akurasi_maks: $('s_acc').value,
         password_baru: pw
       });
       U.session.set('adm_instansi', s.nama_instansi);
@@ -470,12 +528,13 @@
 
   /* ================= MODAL ================= */
   function openModal(html) {
+    $('modal').classList.remove('wide');
     $('modal').innerHTML = html;
     $('modalWrap').classList.remove('hidden');
     const first = $('modal').querySelector('input:not([disabled]), select:not([disabled])');
     first && setTimeout(() => first.focus(), 30);
   }
-  function closeModal() { $('modalWrap').classList.add('hidden'); $('modal').innerHTML = ''; }
+  function closeModal() { $('modalWrap').classList.add('hidden'); $('modal').innerHTML = ''; $('modal').classList.remove('wide'); }
   $('modalWrap').addEventListener('click', e => {
     if (e.target.id === 'modalWrap' || e.target.closest('[data-close]')) closeModal();
   });
