@@ -40,6 +40,15 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 - Sesi admin berlaku 6 jam sejak aktivitas terakhir.
 - Menghapus karyawan tidak menghapus riwayat absensinya. Untuk karyawan keluar, cukup set **Nonaktif**.
 
+## Performa Saya (halaman karyawan)
+
+`saya.html` — karyawan masuk dengan ID + PIN absen, lalu bisa melihat:
+- Persentase ketepatan waktu, jumlah hadir/terlambat/total telat, rata-rata jam masuk & durasi kerja, izin/sakit/cuti/alpa, pulang awal, lupa absen pulang
+- Kalender bulanan berwarna per status, tren 6 bulan, riwayat harian + foto absen sendiri
+- Ganti PIN sendiri
+
+Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan yang dinonaktifkan langsung keluar.
+
 ## Foto lokasi & GPS
 
 - Foto diambil **langsung dari kamera** (tidak bisa dari galeri), diberi watermark jam server, tanggal, nama, koordinat, akurasi, dan jarak ke kantor.

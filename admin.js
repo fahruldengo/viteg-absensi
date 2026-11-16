@@ -324,7 +324,7 @@
 
   function fotoBox(label, jam, fotoId, lokasi, alamat, extra) {
     return `<div class="foto-box">
-      <div class="ph" ${fotoId ? `data-foto="${U.esc(fotoId)}"` : ''}>${fotoId ? '<span class="spinner"></span>' : 'Tidak ada foto'}</div>
+      <div class="ph${fotoId ? '' : ' none'}" ${fotoId ? `data-foto="${U.esc(fotoId)}"` : ''}>${fotoId ? '<span class="spinner"></span>' : 'Tidak ada foto'}</div>
       <div class="meta"><b>${label} · ${U.hm(jam)}</b>
         ${alamat ? U.esc(alamat) + '<br>' : ''}
         ${lokasi ? `${U.esc(lokasi)} · ${mapLink(lokasi, 'Buka peta')}` : '<span class="muted">Lokasi tidak tercatat</span>'}

@@ -130,6 +130,7 @@ textarea.inp { resize: vertical; min-height: 70px; }
 .foto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
 .foto-box { background: #f6f5f0; border-radius: 12px; overflow: hidden; }
 .foto-box .ph { aspect-ratio: 3 / 4; background: #e9e7df; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 13px; }
+.foto-box .ph.none { aspect-ratio: auto; height: 56px; }
 .foto-box .ph img { width: 100%; height: 100%; object-fit: contain; background: #12161f; cursor: zoom-in; }
 .foto-box .meta { padding: 10px 12px; font-size: 12px; color: var(--ink-2); }
 .foto-box .meta b { display: block; font-size: 14px; color: var(--ink); }
@@ -236,3 +237,71 @@ td.act .btn + .btn { margin-left: 4px; }
   .stat b { font-size: 26px; }
   td, th { padding: 10px; }
 }
+
+/* ---------- Performa Saya ---------- */
+.saya-wrap { max-width: 760px; margin: 0 auto; padding: 18px 14px 40px; }
+.saya-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.saya-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.saya-id h1 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; }
+.saya-id .muted { font-size: 13px; }
+.avatar { width: 48px; height: 48px; border-radius: 14px; background: var(--dark); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px; flex: none; }
+.saya-actions { display: flex; gap: 6px; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; margin-bottom: 14px; }
+.month-nav b { font-size: 16px; }
+.month-nav .btn { font-size: 18px; width: 40px; padding: 4px 0; border: 0; }
+#content { transition: opacity .15s; }
+
+.score { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+.ring { width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; position: relative; background: #ebe9e1; }
+.ring::before { content: ''; position: absolute; inset: 9px; background: #fff; border-radius: 50%; }
+.ring span { position: relative; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.score-title { font-size: 19px; font-weight: 800; margin: 2px 0; }
+.score .muted { font-size: 13px; }
+.saya-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.saya-stats .stat b { font-size: 24px; }
+
+.block { margin-bottom: 14px; }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.block-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+.block-head .muted { font-size: 13px; }
+
+.cal-head, .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-head span { text-align: center; font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; padding-bottom: 4px; }
+.cal-day { aspect-ratio: 1; border: 0; border-radius: 9px; background: #f3f2ec; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0; color: var(--ink-2); }
+.cal-day b { font-size: 14px; }
+.cal-day small { font-size: 10px; font-weight: 600; opacity: .85; font-variant-numeric: tabular-nums; }
+.cal-day.empty { background: transparent; }
+.cal-day.future { opacity: .45; }
+.cal-day.today { box-shadow: inset 0 0 0 2px var(--ink); }
+.cal-day[data-id] { cursor: pointer; }
+.cal-day.c-ok { background: var(--accent); color: #fff; }
+.cal-day.c-late { background: var(--late); color: #fff; }
+.cal-day.c-info { background: var(--info-soft); color: var(--info); }
+.cal-day.c-warn { background: var(--warn-soft); color: var(--warn); }
+.cal-day.c-bad { background: var(--bad); color: #fff; }
+.cal-day:disabled { cursor: default; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lg-ok { background: var(--accent); } .lg-late { background: var(--late); } .lg-info { background: var(--info-soft); outline: 1px solid var(--info); outline-offset: -1px; }
+.lg-warn { background: var(--warn-soft); outline: 1px solid var(--warn); outline-offset: -1px; } .lg-bad { background: var(--bad); } .lg-none { background: #d9d6cb; }
+
+.trend { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: end; height: 170px; }
+.tr-col { display: flex; flex-direction: column; align-items: center; height: 100%; gap: 4px; }
+.tr-bar { flex: 1; width: 100%; max-width: 38px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.tr-bar i { display: block; width: 100%; border-radius: 4px; min-height: 0; }
+.tr-col b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.tr-col span { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+.tr-col.cur span { color: var(--ink); font-weight: 800; }
+
+.riwayat { display: flex; flex-direction: column; gap: 8px; }
+.riw-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 0; font: inherit; text-align: left; cursor: pointer; width: 100%; color: inherit; }
+.riw-item:hover { background: #fcfbf8; }
+.riw-date { width: 40px; text-align: center; flex: none; }
+.riw-date b { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
+.riw-date span { font-size: 11px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; }
+.riw-main { flex: 1; min-width: 0; }
+.riw-time { margin-top: 3px; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.riw-late { font-size: 12px; color: var(--late); font-weight: 700; }
+.riw-side { text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.riw-side small { display: block; font-size: 11px; color: var(--ink-3); font-weight: 600; }
+@media (max-width: 480px) { .saya-stats { grid-template-columns: 1fr 1fr; } .ring { width: 78px; height: 78px; } .ring span { font-size: 19px; } .trend { height: 140px; gap: 6px; } }

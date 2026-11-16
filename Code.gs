@@ -68,7 +68,16 @@ const PUBLIC = {
   info: info_,
   status: status_,
   absen: absen_,
-  login: login_
+  login: login_,
+  loginKaryawan: loginKaryawan_
+};
+
+// Endpoint karyawan (token login karyawan)
+const EMP = {
+  saya: saya_,
+  fotoSaya: fotoSaya_,
+  gantiPin: gantiPin_,
+  logoutKaryawan: logoutKaryawan_
 };
 
 const ADMIN = {
@@ -113,6 +122,7 @@ function route_(p) {
   const a = p.action;
   if (PUBLIC[a]) return PUBLIC[a](p);
   if (ADMIN[a]) { auth_(p.token); return ADMIN[a](p); }
+  if (EMP[a]) return EMP[a](p, empAuth_(p.token));
   throw new Error('Aksi tidak dikenal: ' + a);
 }
 
@@ -230,6 +240,118 @@ function login_(p) {
   const token = Utilities.getUuid();
   CacheService.getScriptCache().put('tok_' + token, '1', 21600); // 6 jam
   return { token: token, nama_instansi: st.nama_instansi };
+}
+
+/* ================= KARYAWAN (PERFORMA SAYA) ================= */
+
+function loginKaryawan_(p) {
+  const id = String(p.id || '').trim().toUpperCase();
+  const k = rows_(SH.K).find(r => r.ID.toUpperCase() === id && r.Status === 'Aktif');
+  if (!k) throw new Error('ID karyawan tidak ditemukan atau nonaktif');
+  checkPin_('k_' + k.ID, p.pin, k.PIN_Hash);
+  const token = Utilities.getUuid();
+  CacheService.getScriptCache().put('emp_' + token, k.ID, 21600); // 6 jam
+  return { token: token, karyawan: pubK_(k), nama_instansi: settings_().nama_instansi };
+}
+
+function empAuth_(token) {
+  const c = CacheService.getScriptCache();
+  const id = token && c.get('emp_' + token);
+  if (!id) throw new Error('SESI_HABIS');
+  c.put('emp_' + token, id, 21600);
+  return id;
+}
+
+function logoutKaryawan_(p) {
+  CacheService.getScriptCache().remove('emp_' + p.token);
+  return true;
+}
+
+function saya_(p, kid) {
+  const k = rows_(SH.K).find(r => r.ID === kid);
+  if (!k || k.Status !== 'Aktif') throw new Error('SESI_HABIS');
+  const st = settings_();
+  const bulan = /^\d{4}-\d{2}$/.test(p.bulan || '') ? p.bulan : today_().slice(0, 7);
+  const semua = rows_(SH.A).filter(a => a.KaryawanID === kid);
+
+  // Tren 6 bulan terakhir (sampai bulan dipilih)
+  const tren = [];
+  let y = Number(bulan.slice(0, 4)), m = Number(bulan.slice(5, 7));
+  for (let i = 0; i < 6; i++) {
+    const key = y + '-' + ('0' + m).slice(-2);
+    const r = ringkas_(semua.filter(a => a.Tanggal.slice(0, 7) === key), st);
+    tren.unshift({ bulan: key, hadir: r.hadir, terlambat: r.terlambat, tidakHadir: r.izin + r.sakit + r.cuti + r.alpa });
+    m--; if (m === 0) { m = 12; y--; }
+  }
+
+  const list = semua.filter(a => a.Tanggal.slice(0, 7) === bulan)
+    .sort((a, b) => b.Tanggal.localeCompare(a.Tanggal));
+  return {
+    karyawan: pubK_(k),
+    bulan: bulan,
+    hari_ini: today_(),
+    jam_masuk: st.jam_masuk,
+    jam_pulang: st.jam_pulang,
+    toleransi_menit: Number(st.toleransi_menit) || 0,
+    ringkas: ringkas_(list, st),
+    tren: tren,
+    riwayat: list.map(pubAbs_),
+    pertama: semua.reduce((min, a) => (!min || a.Tanggal < min) ? a.Tanggal : min, '')
+  };
+}
+
+function ringkas_(list, st) {
+  const r = { total: list.length, hadir: 0, tepat: 0, terlambat: 0, totalTelat: 0, dinas: 0,
+              izin: 0, sakit: 0, cuti: 0, alpa: 0, pulangAwal: 0, lupaPulang: 0,
+              rataMasuk: '', rataPulang: '', rataDurasi: 0 };
+  let sm = 0, nm = 0, sp = 0, np = 0, sd = 0, nd = 0;
+  const today = today_();
+  list.forEach(a => {
+    if (STATUS_HADIR.includes(a.Status)) {
+      r.hadir++;
+      if (a.Status === 'Terlambat') { r.terlambat++; r.totalTelat += Number(a.TelatMenit) || 0; }
+      else if (a.Status === 'Dinas Luar') r.dinas++;
+      else r.tepat++;
+      if (a.JamMasuk) { sm += toMin_(a.JamMasuk); nm++; }
+      if (a.JamPulang) {
+        sp += toMin_(a.JamPulang); np++;
+        if (toMin_(a.JamPulang) < toMin_(st.jam_pulang)) r.pulangAwal++;
+        if (a.JamMasuk) { sd += toMin_(a.JamPulang) - toMin_(a.JamMasuk); nd++; }
+      } else if (a.JamMasuk && a.Tanggal < today) r.lupaPulang++;
+    }
+    else if (a.Status === 'Izin') r.izin++;
+    else if (a.Status === 'Sakit') r.sakit++;
+    else if (a.Status === 'Cuti') r.cuti++;
+    else if (a.Status === 'Alpa') r.alpa++;
+  });
+  const hm = n => ('0' + Math.floor(n / 60)).slice(-2) + ':' + ('0' + Math.round(n % 60)).slice(-2);
+  if (nm) r.rataMasuk = hm(Math.round(sm / nm));
+  if (np) r.rataPulang = hm(Math.round(sp / np));
+  if (nd) r.rataDurasi = Math.round(sd / nd);
+  const dasar = r.tepat + r.terlambat;
+  r.persenTepat = dasar ? Math.round(r.tepat / dasar * 100) : null;
+  return r;
+}
+
+function fotoSaya_(p, kid) {
+  const id = String(p.id || '');
+  const ada = id && rows_(SH.A).some(a => a.KaryawanID === kid && (a.FotoMasuk === id || a.FotoPulang === id));
+  if (!ada) throw new Error('Foto tidak ditemukan');
+  const f = DriveApp.getFileById(id);
+  return { data: 'data:image/jpeg;base64,' + Utilities.base64Encode(f.getBlob().getBytes()) };
+}
+
+function gantiPin_(p, kid) {
+  return withLock_(() => {
+    const k = rows_(SH.K).find(r => r.ID === kid);
+    if (!k) throw new Error('SESI_HABIS');
+    checkPin_('k_' + k.ID, p.pinLama, k.PIN_Hash);
+    if (!/^\d{4,6}$/.test(p.pinBaru || '')) throw new Error('PIN baru harus 4–6 digit angka');
+    if (p.pinBaru === p.pinLama) throw new Error('PIN baru harus berbeda dari PIN lama');
+    k.PIN_Hash = hash_(p.pinBaru);
+    writeObj_(SH.K, k, k._row);
+    return true;
+  });
 }
 
 /* ================= ADMIN ================= */
