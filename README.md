@@ -67,6 +67,10 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 2. Terapkan → Kelola deployment → Edit → **Versi baru** → Terapkan.
 3. Upload `index.html`, `absen.js`, `api.js`, `admin.html`, `admin.js`, `style.css`, `README.md`. **`config.js` tidak perlu diubah.**
 
+## Cache browser
+
+File CSS/JS dipanggil dengan nomor versi (`style.css?v=...`). Setiap kali CSS/JS diubah, nomor versi di `index.html`, `admin.html`, dan `saya.html` ikut dinaikkan agar browser karyawan tidak memakai file lama.
+
 ## Catatan keamanan
 
 PIN & password disimpan sebagai hash SHA-256. Karena API memakai GET, PIN terkirim di URL (lewat HTTPS) — cukup untuk absensi internal, tetapi jangan pakai PIN yang sama dengan PIN bank.
