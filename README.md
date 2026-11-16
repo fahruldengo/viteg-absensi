@@ -12,6 +12,9 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 | `style.css` | Tampilan |
 | `config.js` | URL API & zona waktu — **jangan ditimpa saat update** |
 | `Code.gs` | Backend Apps Script (tidak di-upload ke GitHub) |
+| `saya.html` + `saya.js` | Halaman Performa Saya (login karyawan) |
+| `assets/` | Logo VTEG (biru, putih, ikon globe) & ikon aplikasi |
+| `manifest.webmanifest` | Ikon & nama saat disimpan ke layar utama HP |
 
 ## Pemasangan
 

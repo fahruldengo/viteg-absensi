@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1d2330">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d1250">
   <meta name="robots" content="noindex">
   <title>Performa Saya — Absensi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +19,7 @@
   <!-- LOGIN -->
   <section id="login" class="login-wrap hidden">
     <form id="loginForm" class="card login-card">
-      <div class="brand-dot"></div>
+      <img src="assets/logo.png" class="login-logo" alt="VTEG">
       <h1>Performa Saya</h1>
       <p class="muted" style="margin:0">Masuk dengan ID dan PIN absen Anda.</p>
       <div id="loginNotice" class="notice hidden" style="margin:14px 0 0"></div>
@@ -31,11 +34,12 @@
 
   <!-- APP -->
   <main id="app" class="saya-wrap hidden">
+    <div class="brand-row"><img src="assets/logo.png" alt="VTEG"><span>Performa Saya</span></div>
     <header class="saya-head">
       <div class="saya-id">
         <div class="avatar" id="avatar">—</div>
         <div>
-          <div class="eyebrow" id="instansi">Performa Saya</div>
+          <div class="eyebrow" id="instansi">Karyawan</div>
           <h1 id="nama">—</h1>
           <div class="muted" id="sub">—</div>
         </div>

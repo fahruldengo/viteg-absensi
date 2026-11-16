@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1d2330">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d1250">
   <meta name="robots" content="noindex">
   <title>Panel Admin — Absensi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +19,7 @@
   <!-- LOGIN -->
   <section id="login" class="login-wrap hidden">
     <form id="loginForm" class="card login-card">
-      <div class="brand-dot"></div>
+      <img src="assets/logo.png" class="login-logo" alt="VTEG">
       <h1>Panel Admin</h1>
       <p class="muted" style="margin:0">Masuk untuk mengelola absensi dan karyawan.</p>
       <div id="loginNotice" class="notice hidden" style="margin:14px 0 0"></div>
@@ -30,7 +33,7 @@
   <!-- APP -->
   <div id="app" class="hidden">
     <header class="topbar">
-      <div class="brand-dot"></div>
+      <img src="assets/logo-mark-white.png" class="topbar-logo" alt="VTEG">
       <div class="t"><span>Panel Admin</span><b id="tInstansi">—</b></div>
       <a href="index.html" class="btn btn-ghost btn-sm" target="_blank">Halaman Absen</a>
       <button id="btnLogout" class="btn btn-ghost btn-sm">Keluar</button>

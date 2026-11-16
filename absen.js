@@ -3,6 +3,8 @@
   const $ = id => document.getElementById(id);
   const S = { info: null, offset: 0, karyawan: [], pos: null, rec: null, busy: false, resultTimer: null,
              stream: null, facing: 'environment', foto: null };
+  const LOGO_WM = new Image();
+  LOGO_WM.src = 'assets/logo-mark-white.png';
   const FOTO_MAKS_UMUR = 3 * 60 * 1000; // foto harus diambil maks 3 menit sebelum absen
 
   /* ---------- Jam (disinkronkan dengan server) ---------- */
@@ -305,7 +307,14 @@
     const jw = g.measureText(jam).width;
     g.fillStyle = '#0e7a6d'; g.fillRect(pad + jw + f * .6, y - big * .78, Math.max(3, f * .18), big * .8);
     g.fillStyle = '#fff'; g.font = font(600, Math.round(f * .85));
-    g.fillText(U.longDate(now) + ' · WITA', pad + jw + f * 1.3, y - big * .12);
+    const logoW = LOGO_WM.naturalWidth ? Math.round(LOGO_WM.naturalWidth * big * 1.25 / LOGO_WM.naturalHeight) + f : 0;
+    g.fillText(fit(g, new Intl.DateTimeFormat('id-ID', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now) + ' · WITA', w - pad * 2 - jw - f * 1.3 - logoW), pad + jw + f * 1.3, y - big * .12);
+    if (LOGO_WM.complete && LOGO_WM.naturalWidth) {
+      const lh = Math.round(big * 1.25), lw = Math.round(LOGO_WM.naturalWidth * lh / LOGO_WM.naturalHeight);
+      g.globalAlpha = .92;
+      g.drawImage(LOGO_WM, w - pad - lw, y - big * .95, lw, lh);
+      g.globalAlpha = 1;
+    }
     y += f * .4;
     lines.forEach(([t, wt, sz]) => {
       if (!t) return;

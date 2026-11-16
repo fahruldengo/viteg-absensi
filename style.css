@@ -8,7 +8,7 @@
   --accent: #0e7a6d;
   --accent-ink: #ffffff;
   --accent-soft: #dcefeb;
-  --dark: #1d2330;
+  --dark: #0d1250;
   --late: #b4530b;
   --late-soft: #fbead9;
   --bad: #b42318;
@@ -86,6 +86,12 @@ textarea.inp { resize: vertical; min-height: 70px; }
 /* ---------- Halaman Absen ---------- */
 .absen-wrap { max-width: 460px; margin: 0 auto; padding: 22px 16px 40px; }
 .absen-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.brand-logo { height: 54px; width: auto; flex: none; display: block; }
+.login-logo { height: 76px; width: auto; display: block; }
+.topbar-logo { height: 32px; width: auto; flex: none; display: block; }
+.brand-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.brand-row img { height: 34px; width: auto; }
+.brand-row span { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding-left: 10px; border-left: 1.5px solid var(--line); }
 .brand-dot { width: 40px; height: 40px; border-radius: 12px; background: var(--accent); position: relative; flex: none; }
 .brand-dot::after { content: ''; position: absolute; inset: 11px; border: 3px solid #fff; border-radius: 50%; border-top-color: transparent; transform: rotate(45deg); }
 .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
@@ -94,8 +100,8 @@ textarea.inp { resize: vertical; min-height: 70px; }
 .clock-card { background: var(--dark); color: #fff; border-radius: var(--radius); padding: 22px 20px 18px; margin-bottom: 14px; position: relative; overflow: hidden; }
 .clock-card::before { content: ''; position: absolute; right: -60px; top: -60px; width: 180px; height: 180px; border-radius: 50%; border: 28px solid rgba(255,255,255,.05); }
 .clock { font-size: 52px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
-.date { margin-top: 8px; font-weight: 600; color: #c9cdd6; }
-.shift { margin-top: 12px; font-size: 13px; color: #9aa1ad; display: flex; gap: 14px; flex-wrap: wrap; }
+.date { margin-top: 8px; font-weight: 600; color: #ced1ee; }
+.shift { margin-top: 12px; font-size: 13px; color: #a3a8d4; display: flex; gap: 14px; flex-wrap: wrap; }
 .shift b { color: #fff; font-weight: 700; }
 
 .absen-wrap .card .lbl:first-child { margin-top: 0; }
@@ -121,7 +127,7 @@ textarea.inp { resize: vertical; min-height: 70px; }
 .cam img { object-fit: contain; background: #12161f; }
 .cam-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px; text-align: center; }
 .cam-empty small { color: #9aa1ad; font-size: 12px; max-width: 260px; }
-.cam-empty .btn-dark { background: #2c3445; }
+.cam-empty .btn-dark { background: #232a78; }
 .cam-badge { position: absolute; top: 10px; left: 10px; background: rgba(14,122,109,.92); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
 .cam-actions { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .cam-actions:empty { display: none; }
@@ -168,9 +174,9 @@ textarea.inp { resize: vertical; min-height: 70px; }
 .topbar .brand-dot::after { inset: 8px; border-width: 2.5px; }
 .topbar .t { flex: 1; min-width: 0; }
 .topbar .t b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar .t span { font-size: 11px; color: #9aa1ad; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-.topbar .btn-ghost { color: #c9cdd6; border-color: #3a4252; }
-.topbar .btn-ghost:hover { background: #2a3140; }
+.topbar .t span { font-size: 11px; color: #a9add6; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.topbar .btn-ghost { color: #d3d6f0; border-color: #2c3378; }
+.topbar .btn-ghost:hover { background: #1a2070; }
 
 .tabs { display: flex; gap: 4px; padding: 10px 20px 0; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 15; }
 .tab { font: inherit; font-weight: 700; font-size: 14px; color: var(--ink-3); background: none; border: 0; padding: 10px 14px 12px; cursor: pointer; border-bottom: 2.5px solid transparent; white-space: nowrap; }
