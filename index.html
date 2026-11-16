@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1d2330">
+  <title>Absensi Karyawan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="absen-wrap">
+    <header class="absen-head">
+      <div class="brand-dot"></div>
+      <div>
+        <div class="eyebrow">Absensi Karyawan</div>
+        <h1 id="instansi">Memuat…</h1>
+      </div>
+    </header>
+
+    <div id="notice" class="notice hidden"></div>
+
+    <section class="clock-card">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="date">—</div>
+      <div class="shift">
+        <span>Masuk <b id="jamMasuk">--:--</b></span>
+        <span>Pulang <b id="jamPulang">--:--</b></span>
+        <span>Toleransi <b id="toleransi">-</b></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <label class="lbl" for="cari">Karyawan</label>
+      <input id="cari" class="inp" placeholder="Cari nama atau ID…" autocomplete="off">
+      <select id="karyawan" class="inp">
+        <option value="">— Pilih nama Anda —</option>
+      </select>
+
+      <div id="statusBox" class="status-box hidden">
+        <div><span>Masuk</span><b id="stMasuk">—</b></div>
+        <div><span>Pulang</span><b id="stPulang">—</b></div>
+        <div><span>Status</span><b id="stStatus">—</b></div>
+      </div>
+
+      <label class="lbl" for="pin">PIN</label>
+      <input id="pin" class="inp pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••" autocomplete="off">
+
+      <div class="loc wait" id="loc"><span class="loc-dot"></span><span id="locText">Mendeteksi lokasi…</span></div>
+
+      <div class="btn-row">
+        <button id="btnMasuk" class="btn btn-primary btn-lg" disabled>Absen Masuk</button>
+        <button id="btnPulang" class="btn btn-dark btn-lg" disabled>Absen Pulang</button>
+      </div>
+    </section>
+
+    <footer class="absen-foot"><a href="admin.html">Panel Admin →</a></footer>
+  </main>
+
+  <div id="result" class="overlay hidden">
+    <div class="result-card">
+      <div id="rIcon" class="result-icon ok">✓</div>
+      <h2 id="rTitle">Berhasil</h2>
+      <div id="rTime" class="result-time">--:--</div>
+      <p id="rDesc"></p>
+      <button id="rClose" class="btn btn-dark btn-lg">Selesai</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="absen.js"></script>
+</body>
+</html>
