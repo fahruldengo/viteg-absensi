@@ -75,6 +75,7 @@ const PUBLIC = {
   status: status_,
   absen: absen_,
   login: login_,
+  loginPantau: loginPantau_,
   loginKaryawan: loginKaryawan_
 };
 
@@ -130,7 +131,7 @@ function doPost(e) {
 function route_(p) {
   const a = p.action;
   if (PUBLIC[a]) return PUBLIC[a](p);
-  if (ADMIN[a]) { auth_(p.token); return ADMIN[a](p); }
+  if (ADMIN[a]) { auth_(p.token, a); return ADMIN[a](p); }
   if (EMP[a]) return EMP[a](p, empAuth_(p.token));
   throw new Error('Aksi tidak dikenal: ' + a);
 }
@@ -264,6 +265,19 @@ function login_(p) {
   const token = Utilities.getUuid();
   CacheService.getScriptCache().put('tok_' + token, '1', 21600); // 6 jam
   return { token: token, nama_instansi: st.nama_instansi };
+}
+
+// Panel Pantau: hanya lihat kehadiran & laporan kerja
+const PANTAU_BOLEH = ['logout', 'dashboard', 'absensi', 'laporan', 'foto', 'karyawan'];
+
+function loginPantau_(p) {
+  const st = settings_();
+  if (!st.pantau_password_hash) throw new Error('Panel Pantau belum diaktifkan oleh admin');
+  checkPin_('pantau', p.password, st.pantau_password_hash);
+  const token = Utilities.getUuid();
+  // sesi terikat ke password saat ini: ganti/nonaktifkan password → sesi lama gugur
+  CacheService.getScriptCache().put('tok_' + token, 'v:' + st.pantau_password_hash.slice(0, 12), 21600);
+  return { token: token, nama_instansi: st.nama_instansi, peran: 'pantau' };
 }
 
 /* ================= KARYAWAN (PERFORMA SAYA) ================= */
@@ -613,6 +627,8 @@ function getSettings_() {
   const st = settings_();
   delete st.admin_password_hash;
   delete st.folder_foto_id;
+  st.pantau_aktif = !!st.pantau_password_hash;
+  delete st.pantau_password_hash;
   st.timezone = TZ;
   return st;
 }
@@ -650,7 +666,17 @@ function saveSettings_(p) {
 
     if (p.password_baru) {
       if (String(p.password_baru).length < 6) throw new Error('Password baru minimal 6 karakter');
+      if (cur.pantau_password_hash && hash_(p.password_baru) === cur.pantau_password_hash) throw new Error('Password admin harus berbeda dari password Panel Pantau');
       setSetting_('admin_password_hash', hash_(p.password_baru));
+    }
+    if (p.pantau_nonaktif === 'ya') {
+      setSetting_('pantau_password_hash', '');
+    } else if (p.pantau_password_baru) {
+      if (String(p.pantau_password_baru).length < 6) throw new Error('Password Panel Pantau minimal 6 karakter');
+      const ph = hash_(p.pantau_password_baru);
+      const adminHash = p.password_baru ? hash_(p.password_baru) : cur.admin_password_hash;
+      if (ph === adminHash) throw new Error('Password Panel Pantau harus berbeda dari password admin');
+      setSetting_('pantau_password_hash', ph);
     }
     return getSettings_();
   });
@@ -658,10 +684,16 @@ function saveSettings_(p) {
 
 /* ================= HELPER ================= */
 
-function auth_(token) {
+function auth_(token, action) {
   const c = CacheService.getScriptCache();
-  if (!token || !c.get('tok_' + token)) throw new Error('SESI_HABIS');
-  c.put('tok_' + token, '1', 21600); // perpanjang sesi
+  const v = token && c.get('tok_' + token);
+  if (!v) throw new Error('SESI_HABIS');
+  if (v !== '1') { // token Panel Pantau
+    const h = settings_().pantau_password_hash || '';
+    if (!h || v !== 'v:' + h.slice(0, 12)) { c.remove('tok_' + token); throw new Error('SESI_HABIS'); }
+    if (PANTAU_BOLEH.indexOf(action) < 0) throw new Error('Akses ditolak: Panel Pantau hanya bisa melihat data');
+  }
+  c.put('tok_' + token, v, 21600); // perpanjang sesi
 }
 
 function checkPin_(key, input, savedHash) {

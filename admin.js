@@ -3,7 +3,10 @@
   const $ = id => document.getElementById(id);
   const STATUS = ['Hadir', 'Terlambat', 'Dinas Luar', 'Izin', 'Sakit', 'Cuti', 'Alpa'];
   const HADIR = ['Hadir', 'Terlambat', 'Dinas Luar'];
-  const S = { token: U.session.get('adm_token'), karyawan: [], absensi: [], settings: null, tab: 'dashboard' };
+  // Mode Panel Pantau (pantau.html): hanya lihat kehadiran & laporan kerja
+  const PANTAU = document.body.dataset.mode === 'pantau';
+  const KEY = PANTAU ? 'pnt' : 'adm';
+  const S = { token: U.session.get(KEY + '_token'), karyawan: [], absensi: [], settings: null, tab: 'dashboard' };
 
   const today = () => U.isoDate(new Date());
 
@@ -35,7 +38,7 @@
   async function showApp() {
     $('login').classList.add('hidden');
     $('app').classList.remove('hidden');
-    $('tInstansi').textContent = U.session.get('adm_instansi') || '—';
+    $('tInstansi').textContent = U.session.get(KEY + '_instansi') || '—';
     await loadKaryawan(true);
     if (!S.token) return; // sesi habis → sudah kembali ke login
     switchTab(S.tab);
@@ -46,10 +49,10 @@
     const btn = $('btnLogin');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Memeriksa…';
     try {
-      const r = await API.call('login', { password: $('password').value });
+      const r = await API.call(PANTAU ? 'loginPantau' : 'login', { password: $('password').value });
       S.token = r.token;
-      U.session.set('adm_token', r.token);
-      U.session.set('adm_instansi', r.nama_instansi);
+      U.session.set(KEY + '_token', r.token);
+      U.session.set(KEY + '_instansi', r.nama_instansi);
       $('password').value = '';
       showApp();
     } catch (err) {
@@ -61,7 +64,7 @@
 
   function logoutLocal() {
     S.token = null;
-    U.session.del('adm_token');
+    U.session.del(KEY + '_token');
     showLogin();
   }
 
@@ -120,8 +123,8 @@
           <td>${U.badge(r && r.status)}</td>
           <td>${r && r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
           <td class="act">${r
-            ? `${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`
-            : `<button class="btn btn-ghost btn-sm" data-isi="${U.esc(x.id)}">Isi</button>`}</td>
+            ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>${PANTAU ? '' : `<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`}`
+            : (PANTAU ? '' : `<button class="btn btn-ghost btn-sm" data-isi="${U.esc(x.id)}">Isi</button>`)}</td>
         </tr>`;
       }).join('');
       S.dashList = d.list;
@@ -150,7 +153,7 @@
   })();
 
   $('aLoad').addEventListener('click', loadAbsensi);
-  $('aAdd').addEventListener('click', () => openAbsensiForm({ tanggal: today(), status: 'Hadir' }, loadAbsensi));
+  $('aAdd')?.addEventListener('click', () => openAbsensiForm({ tanggal: today(), status: 'Hadir' }, loadAbsensi));
   $('aExport').addEventListener('click', exportCSV);
 
   async function loadAbsensi() {
@@ -187,7 +190,7 @@
           <td>${U.badge(r.status)}</td>
           <td>${loc || '<span class="muted">—</span>'}${r.jarak ? `<span class="sub">${U.esc(r.jarak)} m</span>` : ''}</td>
           <td>${r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
-          <td class="act">${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button></td>
+          <td class="act"><button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>${PANTAU ? '' : `<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button>`}</td>
         </tr>`;
       }).join('');
     }
@@ -352,7 +355,7 @@
         if (!fotoCache.has(id)) fotoCache.set(id, await adm('foto', { id }));
         const f = fotoCache.get(id);
         el.innerHTML = `<img src="${f.data}" alt="Foto absen">`;
-        el.insertAdjacentHTML('afterend', `<div class="meta" style="padding-top:0"><a class="loc-link" href="${U.esc(f.url)}" target="_blank" rel="noopener">Buka di Google Drive</a></div>`);
+        if (!PANTAU) el.insertAdjacentHTML('afterend', `<div class="meta" style="padding-top:0"><a class="loc-link" href="${U.esc(f.url)}" target="_blank" rel="noopener">Buka di Google Drive</a></div>`);
       } catch (e) {
         el.textContent = e.message;
       }
@@ -447,8 +450,8 @@
     } catch (e) { if (!silent) U.toast(e.message, 'err'); return false; }
   }
 
-  $('kCari').addEventListener('input', renderKaryawan);
-  $('kAdd').addEventListener('click', () => openKaryawanForm(null));
+  $('kCari')?.addEventListener('input', renderKaryawan);
+  $('kAdd')?.addEventListener('click', () => openKaryawanForm(null));
 
   function renderKaryawan() {
     const q = $('kCari').value.trim().toLowerCase();
@@ -465,7 +468,7 @@
     </tr>`).join('') : `<tr><td colspan="6" class="empty">${S.karyawan.length ? 'Tidak ada yang cocok.' : 'Belum ada karyawan. Klik “+ Tambah Karyawan”.'}</td></tr>`;
   }
 
-  $('kBody').addEventListener('click', async e => {
+  $('kBody')?.addEventListener('click', async e => {
     const b = e.target.closest('button');
     if (!b) return;
     const k = S.karyawan.find(x => x.id === (b.dataset.edit || b.dataset.del));
@@ -554,10 +557,21 @@
       $('s_lap').value = s.wajib_laporan === 'ya' ? 'ya' : 'tidak';
       $('s_laphari').value = s.laporan_edit_hari;
       $('s_pw').value = $('s_pw2').value = '';
+      renderPantauStatus(s);
     } catch (e) { U.toast(e.message, 'err'); }
   }
 
-  $('sMyLoc').addEventListener('click', () => {
+  function renderPantauStatus(s) {
+    const el = $('pantauStatus');
+    if (!el) return;
+    el.className = 'badge ' + (s.pantau_aktif ? 'b-ok' : 'b-none');
+    el.textContent = s.pantau_aktif ? 'Aktif' : 'Belum aktif — isi password untuk mengaktifkan';
+    $('s_ppw').value = $('s_ppw2').value = '';
+    $('s_pnon').checked = false;
+    $('s_pnon').disabled = !s.pantau_aktif;
+  }
+
+  $('sMyLoc')?.addEventListener('click', () => {
     if (!navigator.geolocation) return U.toast('Perangkat tidak mendukung lokasi', 'err');
     const b = $('sMyLoc'); b.disabled = true; b.textContent = 'Mendeteksi…';
     navigator.geolocation.getCurrentPosition(p => {
@@ -571,10 +585,13 @@
     }, { enableHighAccuracy: true, timeout: 15000 });
   });
 
-  $('sForm').addEventListener('submit', async e => {
+  $('sForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const pw = $('s_pw').value;
     if (pw && pw !== $('s_pw2').value) return U.toast('Ulangi password tidak sama', 'err');
+    const ppw = $('s_ppw').value, pnon = $('s_pnon').checked;
+    if (ppw && ppw !== $('s_ppw2').value) return U.toast('Ulangi password Panel Pantau tidak sama', 'err');
+    if (pnon && !confirm('Nonaktifkan Panel Pantau? Semua yang sedang masuk akan keluar.')) return;
     const btn = $('sSave');
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan…';
     try {
@@ -585,12 +602,15 @@
         kantor_lat: $('s_lat').value.trim(), kantor_lng: $('s_lng').value.trim(),
         wajib_foto: $('s_foto').value, akurasi_maks: $('s_acc').value,
         wajib_laporan: $('s_lap').value, laporan_edit_hari: $('s_laphari').value,
-        password_baru: pw
+        password_baru: pw,
+        pantau_password_baru: pnon ? '' : ppw,
+        pantau_nonaktif: pnon ? 'ya' : ''
       });
-      U.session.set('adm_instansi', s.nama_instansi);
+      renderPantauStatus(s);
+      U.session.set(KEY + '_instansi', s.nama_instansi);
       $('tInstansi').textContent = s.nama_instansi;
       $('s_pw').value = $('s_pw2').value = '';
-      U.toast('Pengaturan disimpan' + (pw ? ' · password diganti' : ''), 'ok');
+      U.toast('Pengaturan disimpan' + (pw ? ' · password admin diganti' : '') + (ppw && !pnon ? ' · password Panel Pantau diset' : '') + (pnon ? ' · Panel Pantau dinonaktifkan' : ''), 'ok');
     } catch (err) {
       U.toast(err.message, 'err');
     } finally {

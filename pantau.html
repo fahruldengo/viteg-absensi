@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d1250">
+  <meta name="robots" content="noindex">
+  <title>Panel Pantau — Absensi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20261117b">
+</head>
+<body data-mode="pantau">
+
+  <!-- LOGIN -->
+  <section id="login" class="login-wrap hidden">
+    <form id="loginForm" class="card login-card">
+      <img src="assets/logo.png" class="login-logo" alt="VTEG" height="76" style="height:76px;width:auto">
+      <h1>Panel Pantau</h1>
+      <p class="muted" style="margin:0">Lihat kehadiran dan laporan kerja karyawan.</p>
+      <div id="loginNotice" class="notice hidden" style="margin:14px 0 0"></div>
+      <label class="lbl" for="password">Password</label>
+      <input id="password" class="inp" type="password" autocomplete="current-password" required>
+      <button class="btn btn-primary btn-lg" type="submit" id="btnLogin">Masuk</button>
+      <p style="text-align:center;margin:16px 0 0;font-size:13px"><a href="index.html">← Halaman absen</a></p>
+    </form>
+  </section>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <img src="assets/logo-mark-white.png" class="topbar-logo" alt="VTEG" height="32" style="height:32px;width:auto">
+      <div class="t"><span>Panel Pantau · hanya lihat</span><b id="tInstansi">—</b></div>
+      <a href="index.html" class="btn btn-ghost btn-sm" target="_blank">Halaman Absen</a>
+      <button id="btnLogout" class="btn btn-ghost btn-sm">Keluar</button>
+    </header>
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="absensi">Data Absensi</button>
+      <button class="tab" data-tab="laporan">Laporan Kerja</button>
+    </nav>
+
+    <main class="main">
+      <!-- DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane">
+        <div class="sec-head">
+          <div><h2>Dashboard</h2><p id="dTanggalLabel">—</p></div>
+          <div class="toolbar">
+            <input type="date" id="dTanggal" class="inp">
+            <button class="btn btn-ghost btn-sm" id="dToday">Hari ini</button>
+            <button class="btn btn-ghost btn-sm" id="dRefresh">Muat ulang</button>
+          </div>
+        </div>
+        <div class="stats" id="dStats"></div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th>Status</th><th>Keterangan</th><th></th></tr></thead>
+              <tbody id="dBody"><tr><td colspan="7" class="loading-row">Memuat…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABSENSI -->
+      <section id="tab-absensi" class="tab-pane hidden">
+        <div class="sec-head">
+          <div><h2>Data Absensi</h2><p id="aInfo">Filter dan lihat catatan absensi.</p></div>
+          <div class="toolbar">
+            <button class="btn btn-ghost btn-sm" id="aExport">Export CSV</button>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <input type="date" id="aDari" class="inp" title="Dari tanggal">
+          <span class="muted">s/d</span>
+          <input type="date" id="aSampai" class="inp" title="Sampai tanggal">
+          <select id="aKaryawan" class="inp"><option value="">Semua karyawan</option></select>
+          <select id="aStatus" class="inp"><option value="">Semua status</option></select>
+          <button class="btn btn-dark btn-sm" id="aLoad">Tampilkan</button>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Durasi</th><th>Status</th><th>Lokasi</th><th>Keterangan</th><th></th></tr></thead>
+              <tbody id="aBody"><tr><td colspan="9" class="empty">Pilih rentang tanggal lalu klik Tampilkan.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="rekap">
+          <h3>Rekap per Karyawan</h3>
+          <div class="table-card">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Karyawan</th><th>Hadir</th><th>Terlambat</th><th>Total Telat</th><th>Dinas Luar</th><th>Izin</th><th>Sakit</th><th>Cuti</th><th>Alpa</th></tr></thead>
+                <tbody id="rBody"><tr><td colspan="9" class="empty">—</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LAPORAN KERJA -->
+      <section id="tab-laporan" class="tab-pane hidden">
+        <div class="sec-head">
+          <div><h2>Laporan Kerja</h2><p id="lInfo">Pekerjaan harian yang dilaporkan karyawan.</p></div>
+          <div class="toolbar"><button class="btn btn-ghost btn-sm" id="lExport">Export CSV</button></div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <input type="date" id="lDari" class="inp" title="Dari tanggal">
+          <span class="muted">s/d</span>
+          <input type="date" id="lSampai" class="inp" title="Sampai tanggal">
+          <select id="lKaryawan" class="inp"><option value="">Semua karyawan</option></select>
+          <button class="btn btn-dark btn-sm" id="lLoad">Tampilkan</button>
+        </div>
+        <div id="lMissing"></div>
+        <div id="lBody"><div class="empty">Memuat…</div></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalWrap" class="overlay hidden"><div class="modal" id="modal"></div></div>
+  <div id="toast" class="toast"></div>
+
+  <script src="config.js?v=20261117b"></script>
+  <script src="api.js?v=20261117b"></script>
+  <script src="admin.js?v=20261117b"></script>
+</body>
+</html>

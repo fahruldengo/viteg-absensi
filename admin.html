@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261117a">
+  <link rel="stylesheet" href="style.css?v=20261117b">
 </head>
 <body>
 
@@ -189,6 +189,15 @@
           <label class="lbl" for="s_pw2">Ulangi password baru</label>
           <input id="s_pw2" type="password" class="inp" autocomplete="new-password">
 
+          <h3>Panel Pantau (hanya lihat)</h3>
+          <div class="hint" style="margin-top:8px">Untuk atasan/supervisor: hanya bisa melihat Dashboard kehadiran, Data Absensi, dan Laporan Kerja — tanpa tambah, edit, hapus, data karyawan, atau pengaturan. Alamat: <a href="pantau.html" target="_blank" id="pantauLink">pantau.html</a></div>
+          <div id="pantauStatus" class="badge b-none" style="margin-top:10px">—</div>
+          <div class="form-grid">
+            <div><label class="lbl" for="s_ppw">Password Panel Pantau baru</label><input id="s_ppw" type="password" class="inp" placeholder="Kosongkan jika tidak diganti" autocomplete="new-password"></div>
+            <div><label class="lbl" for="s_ppw2">Ulangi password</label><input id="s_ppw2" type="password" class="inp" autocomplete="new-password"></div>
+            <div class="full"><label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;cursor:pointer"><input type="checkbox" id="s_pnon"> Nonaktifkan Panel Pantau (semua yang sedang masuk akan keluar)</label></div>
+          </div>
+
           <div class="form-actions"><button class="btn btn-primary" type="submit" id="sSave">Simpan Pengaturan</button></div>
         </form>
       </section>
@@ -199,8 +208,8 @@
   <div id="modalWrap" class="overlay hidden"><div class="modal" id="modal"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="config.js?v=20261117a"></script>
-  <script src="api.js?v=20261117a"></script>
-  <script src="admin.js?v=20261117a"></script>
+  <script src="config.js?v=20261117b"></script>
+  <script src="api.js?v=20261117b"></script>
+  <script src="admin.js?v=20261117b"></script>
 </body>
 </html>

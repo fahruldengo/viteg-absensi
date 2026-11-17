@@ -13,6 +13,7 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 | `config.js` | URL API & zona waktu — **jangan ditimpa saat update** |
 | `Code.gs` | Backend Apps Script (tidak di-upload ke GitHub) |
 | `saya.html` + `saya.js` | Halaman Performa Saya (login karyawan) |
+| `pantau.html` | Panel Pantau — hanya lihat kehadiran & laporan kerja (memakai `admin.js`) |
 | `assets/` | Logo VTEG (biru, putih, ikon globe) & ikon aplikasi |
 | `manifest.webmanifest` | Ikon & nama saat disimpan ke layar utama HP |
 
@@ -52,6 +53,14 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 
 Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan yang dinonaktifkan langsung keluar.
 
+## Panel Pantau (hanya lihat)
+
+- Untuk atasan/supervisor: `pantau.html`, login dengan password khusus.
+- Hanya bisa melihat **Dashboard kehadiran, Data Absensi (+ detail foto), Laporan Kerja**, dan export CSV.
+- Tidak bisa tambah/edit/hapus absensi, tidak ada menu Karyawan & Pengaturan — dibatasi juga di server.
+- Admin mengaktifkan/mengganti/menonaktifkan di **Pengaturan → Panel Pantau**. Mengganti atau menonaktifkan password langsung mengeluarkan semua sesi Panel Pantau.
+- Password Panel Pantau harus berbeda dari password admin.
+
 ## Laporan kerja harian
 
 - Karyawan menulis daftar pekerjaan per hari (status **Selesai / Proses / Kendala**) + catatan/rencana besok.
@@ -77,7 +86,7 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 
 ## Cache browser
 
-File CSS/JS dipanggil dengan nomor versi (`style.css?v=...`). Setiap kali CSS/JS diubah, nomor versi di `index.html`, `admin.html`, dan `saya.html` ikut dinaikkan agar browser karyawan tidak memakai file lama.
+File CSS/JS dipanggil dengan nomor versi (`style.css?v=...`). Setiap kali CSS/JS diubah, nomor versi di `index.html`, `admin.html`, `saya.html`, dan `pantau.html` ikut dinaikkan agar browser karyawan tidak memakai file lama.
 
 ## Catatan keamanan
 
