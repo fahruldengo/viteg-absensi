@@ -92,12 +92,30 @@
     const tampil = !!(r && r.jamMasuk && !r.jamPulang);
     $('lapSection').classList.toggle('hidden', !tampil);
     if (!tampil) return;
-    if (!lapEd) lapEd = Lap.editor($('lapEditor'));
+    if (!lapEd) lapEd = Lap.editor($('lapEditor'), [], { tanggal: () => S.info && S.info.tanggal });
     $('lapReq').textContent = S.info && S.info.wajib_laporan && !r.laporanCount ? '(wajib)' : '(opsional)';
     $('lapInfo').textContent = r.laporanCount
       ? `Sudah ada ${r.laporanCount} pekerjaan tercatat hari ini. Isian di bawah akan ditambahkan.`
       : 'Tulis pekerjaan yang Anda kerjakan hari ini. Tersimpan saat Anda absen pulang.';
   }
+
+  // Ambil pekerjaan Proses/Kendala dari laporan terakhir (butuh PIN karena isi laporan bersifat pribadi)
+  async function muatBawaan() {
+    const id = $('karyawan').value, pin = $('pin').value.trim();
+    if (!/^\d{4,6}$/.test(pin)) { $('pin').focus(); return U.toast('Masukkan PIN dulu untuk memuat pekerjaan belum selesai', 'err'); }
+    const b = $('btnBawaan');
+    b.disabled = true; b.innerHTML = '<span class="spinner"></span> Memuat…';
+    try {
+      const r = await API.post('bawaanAbsen', { id, pin });
+      const n = lapEd.add(r.items);
+      U.toast(n ? `${n} pekerjaan lanjutan dari ${Lap.tglPendek(r.dari)} dimuat. Perbarui statusnya.` : 'Tidak ada pekerjaan belum selesai', n ? 'ok' : '');
+    } catch (e) {
+      U.toast(e.message, 'err');
+    } finally {
+      b.disabled = false; b.textContent = '↻ Muat pekerjaan belum selesai';
+    }
+  }
+  $('btnBawaan').addEventListener('click', muatBawaan);
 
   function renderStatus() {
     const r = S.rec;

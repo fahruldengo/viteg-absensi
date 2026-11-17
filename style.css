@@ -314,7 +314,9 @@ td.act .btn + .btn { margin-left: 4px; }
 
 /* ---------- Laporan kerja ---------- */
 .lap-rows { display: flex; flex-direction: column; gap: 8px; }
-.lap-row { display: grid; grid-template-columns: 20px 1fr 112px 32px; gap: 6px; align-items: center; }
+.lap-row { display: grid; grid-template-columns: 20px 1fr 112px 32px; gap: 6px; align-items: start; }
+.lap-row .lap-no, .lap-row .lap-del { margin-top: 9px; }
+.lap-row .lap-del { margin-top: 0; }
 .lap-no { font-size: 12px; font-weight: 700; color: var(--ink-3); text-align: center; }
 .lap-row .inp { padding: 9px 11px; font-size: 14px; }
 .lap-s { font-weight: 700; font-size: 13px !important; padding-right: 26px !important; background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50% !important; }
@@ -324,6 +326,12 @@ td.act .btn + .btn { margin-left: 4px; }
 .lap-del { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--ink-3); cursor: pointer; height: 38px; border-radius: 8px; }
 .lap-del:hover { background: var(--bad-soft); color: var(--bad); }
 .lap-add { margin-top: 10px; }
+.lap-tw { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lap-tag { display: inline-block; align-self: flex-start; font-size: 11px; font-weight: 700; color: var(--info); background: var(--info-soft); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.lap-tag.lama { color: var(--late); background: var(--late-soft); }
+.lap-view .lap-tag { margin-left: 6px; vertical-align: 1px; }
+.lap-carry { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--info-soft); color: var(--info); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.lap-carry .btn { background: #fff; }
 .lap-section { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .lap-section .lbl { margin-top: 0; }
 .lap-info { font-size: 12px; color: var(--ink-3); margin: -2px 0 8px; }

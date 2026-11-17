@@ -46,6 +46,7 @@ const DEF = {
 
 const LAPORAN_STATUS = ['Selesai', 'Proses', 'Kendala'];
 const LAPORAN_MAX_ITEM = 30;
+const LAPORAN_BAWAAN_HARI = 14; // cari laporan terakhir maksimal 14 hari ke belakang
 
 const FOTO_MAX_BYTES = 1500000; // batas ukuran foto (base64) per absen
 
@@ -76,7 +77,8 @@ const PUBLIC = {
   absen: absen_,
   login: login_,
   loginPantau: loginPantau_,
-  loginKaryawan: loginKaryawan_
+  loginKaryawan: loginKaryawan_,
+  bawaanAbsen: bawaanAbsen_
 };
 
 // Endpoint karyawan (token login karyawan)
@@ -235,7 +237,7 @@ function absen_(p) {
     // pulang
     if (!rec || !rec.JamMasuk) throw new Error('Anda belum absen masuk hari ini');
     if (rec.JamPulang) throw new Error('Anda sudah absen pulang pukul ' + rec.JamPulang.slice(0, 5));
-    const itemBaru = cleanItems_(p.laporan);
+    const itemBaru = cleanItems_(p.laporan, tgl);
     const lapAda = getLaporan_(tgl, k.ID);
     if (st.wajib_laporan === 'ya' && !itemBaru.length && !(lapAda && lapAda.items.length)) {
       throw new Error('Isi laporan kerja hari ini sebelum absen pulang');
@@ -247,7 +249,7 @@ function absen_(p) {
     rec.Diubah = stamp_();
     writeObj_(SH.A, rec, rec._row);
     if (itemBaru.length) {
-      const gabung = (lapAda ? lapAda.items : []).concat(itemBaru).slice(0, LAPORAN_MAX_ITEM);
+      const gabung = mergeItems_(lapAda ? lapAda.items : [], itemBaru);
       saveLaporan_(tgl, k, gabung, lapAda ? lapAda.catatan : '', lapAda);
     }
     return {
@@ -396,14 +398,67 @@ function gantiPin_(p, kid) {
 
 /* ================= LAPORAN KERJA ================= */
 
-function cleanItems_(raw) {
+// Item laporan: { i: id tetap, t: teks, s: status, a: tanggal mulai pekerjaan (untuk pekerjaan lanjutan) }
+function cleanItems_(raw, tgl) {
   let arr = raw;
   if (typeof raw === 'string') { try { arr = JSON.parse(raw || '[]'); } catch (e) { throw new Error('Format laporan tidak valid'); } }
   if (!Array.isArray(arr)) return [];
   return arr.map(it => ({
     t: String((it && it.t) || '').replace(/\s+/g, ' ').trim().slice(0, 300),
-    s: LAPORAN_STATUS.indexOf(it && it.s) >= 0 ? it.s : 'Selesai'
+    s: LAPORAN_STATUS.indexOf(it && it.s) >= 0 ? it.s : 'Selesai',
+    a: (it && validDate_(it.a) && (!tgl || it.a <= tgl)) ? it.a : (tgl || ''),
+    i: (it && /^[a-z0-9]{4,12}$/.test(it.i || '')) ? it.i : newItemId_()
   })).filter(it => it.t).slice(0, LAPORAN_MAX_ITEM);
+}
+
+function newItemId_() { return Math.random().toString(36).slice(2, 10).padEnd(8, '0'); }
+
+// Sama bila id sama, atau (untuk data lama tanpa id) teksnya sama
+function samaItem_(x, y) {
+  if (x.i && y.i) return x.i === y.i;
+  return itemKey_(x.t) === itemKey_(y.t);
+}
+
+const itemKey_ = t => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Gabung tanpa duplikat: teks sama → status diperbarui, tanggal mulai tetap yang paling awal
+function mergeItems_(lama, baru) {
+  const out = lama.map(it => Object.assign({}, it));
+  baru.forEach(it => {
+    const ada = out.find(x => samaItem_(x, it) || itemKey_(x.t) === itemKey_(it.t));
+    if (ada) {
+      ada.s = it.s;
+      ada.t = it.t;
+      if (!ada.i) ada.i = it.i;
+      if (it.a && (!ada.a || it.a < ada.a)) ada.a = it.a;
+    } else out.push(it);
+  });
+  return out.slice(0, LAPORAN_MAX_ITEM);
+}
+
+// Pekerjaan belum selesai (Proses/Kendala) dari laporan terakhir sebelum tgl
+function bawaan_(kid, tgl, kecuali) {
+  const t = tgl.split('-').map(Number);
+  const batas = new Date(Date.UTC(t[0], t[1] - 1, t[2] - LAPORAN_BAWAAN_HARI)).toISOString().slice(0, 10);
+  const prev = rows_(SH.L)
+    .filter(r => r.KaryawanID === kid && r.Tanggal < tgl && r.Tanggal >= batas)
+    .sort((a, b) => b.Tanggal.localeCompare(a.Tanggal))[0];
+  if (!prev) return { dari: '', items: [] };
+  const lap = parseLap_(prev);
+  const sudah = kecuali || [];
+  const items = lap.items
+    .filter(it => it.s !== 'Selesai' && !sudah.some(x => samaItem_(x, it) || itemKey_(x.t) === itemKey_(it.t)))
+    .map(it => ({ i: it.i || '', t: it.t, s: it.s, a: it.a || lap.tanggal }));
+  return { dari: lap.tanggal, items: items };
+}
+
+function bawaanAbsen_(p) {
+  const k = rows_(SH.K).find(r => r.ID === p.id && r.Status === 'Aktif');
+  if (!k) throw new Error('Karyawan tidak ditemukan atau nonaktif');
+  checkPin_('k_' + k.ID, p.pin, k.PIN_Hash);
+  const tgl = today_();
+  const ada = getLaporan_(tgl, k.ID);
+  return bawaan_(k.ID, tgl, ada ? ada.items : []);
 }
 
 function parseLap_(r) {
@@ -451,6 +506,7 @@ function laporanSaya_(p, kid) {
   const tgl = validDate_(p.tanggal) ? p.tanggal : today_();
   const lap = getLaporan_(tgl, kid);
   return { tanggal: tgl, laporan: lap ? pubLap_(lap) : null,
+           bawaan: bawaan_(kid, tgl, lap ? lap.items : []),
            bisaEdit: tgl <= today_() && tgl >= batasLaporan_(), batas: batasLaporan_() };
 }
 
@@ -462,7 +518,7 @@ function simpanLaporan_(p, kid) {
     if (!validDate_(tgl)) throw new Error('Tanggal tidak valid');
     if (tgl > today_()) throw new Error('Tidak bisa mengisi laporan untuk tanggal mendatang');
     if (tgl < batasLaporan_()) throw new Error('Laporan tanggal ini sudah dikunci (batas ' + (Number(settings_().laporan_edit_hari) || 1) + ' hari)');
-    const items = cleanItems_(p.items);
+    const items = cleanItems_(p.items, tgl);
     const catatan = String(p.catatan || '').trim();
     const ada = getLaporan_(tgl, kid);
     if (!items.length && !catatan) {

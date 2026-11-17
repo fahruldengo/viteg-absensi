@@ -399,7 +399,8 @@
     const list = S.laporan;
     const nItem = list.reduce((a, l) => a + l.items.length, 0);
     const nKendala = list.reduce((a, l) => a + l.items.filter(i => i.s === 'Kendala').length, 0);
-    $('lInfo').textContent = `${list.length} laporan · ${nItem} pekerjaan${nKendala ? ` · ${nKendala} kendala` : ''} · ${U.fmtTgl(dari)}${dari !== sampai ? ' – ' + U.fmtTgl(sampai) : ''}`;
+    const nLanjut = list.reduce((a, l) => a + l.items.filter(i => i.a && i.a < l.tanggal && i.s !== 'Selesai').length, 0);
+    $('lInfo').textContent = `${list.length} laporan · ${nItem} pekerjaan${nKendala ? ` · ${nKendala} kendala` : ''}${nLanjut ? ` · ${nLanjut} lanjutan belum selesai` : ''} · ${U.fmtTgl(dari)}${dari !== sampai ? ' – ' + U.fmtTgl(sampai) : ''}`;
 
     // Satu hari tanpa filter karyawan → tampilkan yang belum mengisi
     if (dari === sampai && !$('lKaryawan').value) {
@@ -426,10 +427,11 @@
   function exportLaporan() {
     if (!S.laporan || !S.laporan.length) return U.toast('Tidak ada laporan untuk diekspor', 'err');
     const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [['Tanggal', 'ID Karyawan', 'Nama', 'No', 'Pekerjaan', 'Status', 'Catatan / Rencana', 'Diubah'].map(q).join(';')];
+    const lines = [['Tanggal', 'ID Karyawan', 'Nama', 'No', 'Pekerjaan', 'Status', 'Mulai', 'Hari ke-', 'Catatan / Rencana', 'Diubah'].map(q).join(';')];
     [...S.laporan].reverse().forEach(l => {
       const items = l.items.length ? l.items : [{ t: '', s: '' }];
-      items.forEach((it, i) => lines.push([l.tanggal, l.karyawanId, l.nama, l.items.length ? i + 1 : '', it.t, it.s, i === 0 ? l.catatan : '', l.diubah].map(q).join(';')));
+      items.forEach((it, i) => lines.push([l.tanggal, l.karyawanId, l.nama, l.items.length ? i + 1 : '', it.t, it.s,
+        it.a || (it.t ? l.tanggal : ''), it.t ? Lap.hariKe(it.a || l.tanggal, l.tanggal) : '', i === 0 ? l.catatan : '', l.diubah].map(q).join(';')));
     });
     const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');

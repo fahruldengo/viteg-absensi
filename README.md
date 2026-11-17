@@ -68,6 +68,10 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 - Pengaturan: laporan **wajib/opsional** saat absen pulang, dan batas hari karyawan boleh mengisi/mengubah (default 3 = hari ini + 2 hari sebelumnya).
 - Admin: tab **Laporan Kerja** (filter tanggal & karyawan, daftar yang belum mengisi, export CSV per pekerjaan) dan laporan tampil di **Detail** absensi.
 - Disimpan di sheet **Laporan** (satu baris per karyawan per hari).
+- **Pekerjaan lanjutan:** item berstatus **Proses / Kendala** otomatis muncul lagi di laporan berikutnya (dicari dari laporan terakhir, maks. 14 hari ke belakang, termasuk melewati akhir pekan/libur). Karyawan cukup memperbarui status atau menulis progres di teksnya. Item yang sudah **Selesai** berhenti terbawa.
+  - Performa Saya: laporan baru langsung terisi pekerjaan lanjutan; bila laporan sudah ada, muncul tombol **Tambahkan**.
+  - Halaman absen: tombol **↻ Muat pekerjaan belum selesai** (butuh PIN).
+  - Setiap item menyimpan tanggal mulai → label **Lanjutan · hari ke-N** (oranye bila ≥ 4 hari) di admin, Panel Pantau, dan Performa Saya; ikut di export CSV (kolom Mulai & Hari ke-).
 
 ## Foto lokasi & GPS
 

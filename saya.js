@@ -87,7 +87,7 @@
   function initLaporan(d) {
     if (L.init) return;
     L.init = true;
-    L.ed = Lap.editor($('lapEdSaya'), [], { onChange: () => { L.dirty = true; } });
+    L.ed = Lap.editor($('lapEdSaya'), [], { onChange: () => { L.dirty = true; }, tanggal: () => L.tgl });
     $('lapCat').addEventListener('input', () => { L.dirty = true; });
     const n = Math.max(1, d.laporan_edit_hari || 1);
     $('lapTgl').innerHTML = Array.from({ length: n }, (_, i) => {
@@ -108,16 +108,39 @@
     $('lapStatus').textContent = 'Memuat…';
     try {
       const r = await emp('laporanSaya', { tanggal: tgl });
-      L.ed.set(r.laporan ? r.laporan.items : []);
+      const bw = r.bawaan || { items: [] };
+      const prefill = !r.laporan && r.bisaEdit && bw.items.length;
+      L.ed.set(r.laporan ? r.laporan.items : (prefill ? bw.items : []));
       $('lapCat').value = r.laporan ? r.laporan.catatan : '';
       L.dirty = false;
       L.ed.disable(!r.bisaEdit);
       $('lapCat').disabled = $('lapSimpan').disabled = !r.bisaEdit;
       $('lapStatus').textContent = r.laporan
         ? `Tersimpan ${r.laporan.diubah.slice(11, 16)} · ${r.laporan.items.length} pekerjaan`
-        : 'Belum diisi';
+        : (prefill ? 'Belum disimpan' : 'Belum diisi');
+      renderCarry(r, bw, prefill);
     } catch (e) {
       $('lapStatus').textContent = e.message;
+    }
+  }
+
+  function renderCarry(r, bw, prefill) {
+    const el = $('lapCarry');
+    if (prefill) {
+      el.innerHTML = `<span>${bw.items.length} pekerjaan belum selesai dari ${Lap.tglPendek(bw.dari)} sudah dimasukkan. Perbarui statusnya, lalu Simpan.</span>`;
+      el.classList.remove('hidden');
+    } else if (r.laporan && r.bisaEdit && bw.items.length) {
+      el.innerHTML = `<span>${bw.items.length} pekerjaan belum selesai dari ${Lap.tglPendek(bw.dari)} belum ada di laporan ini.</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="lapCarryAdd">Tambahkan</button>`;
+      el.classList.remove('hidden');
+      $('lapCarryAdd').onclick = () => {
+        const n = L.ed.add(bw.items);
+        L.dirty = n > 0;
+        el.classList.add('hidden');
+        U.toast(`${n} pekerjaan lanjutan ditambahkan. Jangan lupa Simpan.`, 'ok');
+      };
+    } else {
+      el.classList.add('hidden');
     }
   }
 
@@ -130,6 +153,7 @@
       const r = await emp('simpanLaporan', { tanggal: L.tgl, items, catatan }, true);
       L.dirty = false;
       $('lapStatus').textContent = r ? `Tersimpan ${r.diubah.slice(11, 16)} · ${r.items.length} pekerjaan` : 'Laporan dikosongkan';
+      $('lapCarry').classList.add('hidden');
       U.toast(r ? 'Laporan kerja disimpan' : 'Laporan dihapus', 'ok');
       if (L.tgl.slice(0, 7) === S.bulan) load();
     } catch (e) {
