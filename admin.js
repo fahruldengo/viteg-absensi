@@ -78,6 +78,7 @@
     if (tab === 'dashboard') loadDashboard();
     if (tab === 'absensi' && !S.absensiLoaded) loadAbsensi();
     if (tab === 'karyawan') renderKaryawan();
+    if (tab === 'laporan' && !S.laporanLoaded) loadLaporan();
     if (tab === 'pengaturan') loadSettings();
   }
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
@@ -119,7 +120,7 @@
           <td>${U.badge(r && r.status)}</td>
           <td>${r && r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
           <td class="act">${r
-            ? `${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">${r.fotoMasuk || r.fotoPulang ? 'Foto' : 'Lokasi'}</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`
+            ? `${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button>`
             : `<button class="btn btn-ghost btn-sm" data-isi="${U.esc(x.id)}">Isi</button>`}</td>
         </tr>`;
       }).join('');
@@ -177,7 +178,6 @@
     } else {
       $('aBody').innerHTML = list.map(r => {
         const loc = [mapLink(r.lokasiMasuk, 'Masuk'), mapLink(r.lokasiPulang, 'Pulang')].filter(Boolean).join(' · ');
-        const nFoto = (r.fotoMasuk ? 1 : 0) + (r.fotoPulang ? 1 : 0);
         return `<tr>
           <td class="num">${U.fmtTgl(r.tanggal)}</td>
           <td><b>${U.esc(r.nama)}</b><span class="sub">${U.esc(r.karyawanId)}</span></td>
@@ -187,7 +187,7 @@
           <td>${U.badge(r.status)}</td>
           <td>${loc || '<span class="muted">—</span>'}${r.jarak ? `<span class="sub">${U.esc(r.jarak)} m</span>` : ''}</td>
           <td>${r.ket ? U.esc(r.ket) : '<span class="muted">—</span>'}</td>
-          <td class="act">${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">${nFoto ? 'Foto (' + nFoto + ')' : 'Lokasi'}</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button></td>
+          <td class="act">${hasDetail(r) ? `<button class="btn btn-ghost btn-sm" data-detail="${U.esc(r.id)}">Detail</button>` : ''}<button class="btn btn-ghost btn-sm" data-edit="${U.esc(r.id)}">Edit</button><button class="btn btn-danger btn-sm" data-del="${U.esc(r.id)}">Hapus</button></td>
         </tr>`;
       }).join('');
     }
@@ -320,7 +320,7 @@
 
   /* ---------- Detail foto & lokasi ---------- */
   const fotoCache = new Map();
-  const hasDetail = r => !!(r.fotoMasuk || r.fotoPulang || r.lokasiMasuk || r.lokasiPulang);
+  const hasDetail = r => !!r;
 
   function fotoBox(label, jam, fotoId, lokasi, alamat, extra) {
     return `<div class="foto-box">
@@ -340,8 +340,12 @@
         ${fotoBox('Masuk', r.jamMasuk, r.fotoMasuk, r.lokasiMasuk, r.alamatMasuk, r.jarak ? `<br>${U.esc(r.jarak)} m dari kantor` : '')}
         ${fotoBox('Pulang', r.jamPulang, r.fotoPulang, r.lokasiPulang, r.alamatPulang)}
       </div>
+      <div class="lap-section"><div class="lbl">Laporan kerja</div><div id="dLap"><span class="spinner"></span></div></div>
       <div class="form-actions"><button type="button" class="btn btn-ghost" data-close>Tutup</button></div>`);
     $('modal').classList.add('wide');
+    adm('laporan', { dari: r.tanggal, sampai: r.tanggal, karyawanId: r.karyawanId })
+      .then(l => { const el = $('dLap'); if (el) el.innerHTML = Lap.view(l[0]); })
+      .catch(e => { const el = $('dLap'); if (el) el.textContent = e.message; });
     $('modal').querySelectorAll('[data-foto]').forEach(async el => {
       const id = el.dataset.foto;
       try {
@@ -367,11 +371,76 @@
     }
   });
 
+  /* ================= LAPORAN KERJA ================= */
+  (function initLapFilter() {
+    $('lDari').value = $('lSampai').value = today();
+  })();
+  $('lLoad').addEventListener('click', loadLaporan);
+  $('lExport').addEventListener('click', exportLaporan);
+
+  async function loadLaporan() {
+    const dari = $('lDari').value, sampai = $('lSampai').value;
+    if (dari && sampai && dari > sampai) return U.toast('Tanggal awal melebihi tanggal akhir', 'err');
+    $('lBody').innerHTML = '<div class="loading-row"><span class="spinner"></span></div>';
+    $('lMissing').innerHTML = '';
+    try {
+      S.laporan = await adm('laporan', { dari, sampai, karyawanId: $('lKaryawan').value });
+      S.laporanLoaded = true;
+      renderLaporan(dari, sampai);
+    } catch (e) {
+      $('lBody').innerHTML = `<div class="empty">${U.esc(e.message)}</div>`;
+    }
+  }
+
+  function renderLaporan(dari, sampai) {
+    const list = S.laporan;
+    const nItem = list.reduce((a, l) => a + l.items.length, 0);
+    const nKendala = list.reduce((a, l) => a + l.items.filter(i => i.s === 'Kendala').length, 0);
+    $('lInfo').textContent = `${list.length} laporan · ${nItem} pekerjaan${nKendala ? ` · ${nKendala} kendala` : ''} · ${U.fmtTgl(dari)}${dari !== sampai ? ' – ' + U.fmtTgl(sampai) : ''}`;
+
+    // Satu hari tanpa filter karyawan → tampilkan yang belum mengisi
+    if (dari === sampai && !$('lKaryawan').value) {
+      const sudah = new Set(list.map(l => l.karyawanId));
+      const belum = S.karyawan.filter(k => k.status === 'Aktif' && !sudah.has(k.id));
+      $('lMissing').innerHTML = belum.length
+        ? `<div class="lap-missing"><b>Belum mengisi (${belum.length}):</b> ${belum.map(k => U.esc(k.nama)).join(', ')}</div>` : '';
+    }
+    if (!list.length) { $('lBody').innerHTML = '<div class="card empty">Belum ada laporan kerja pada rentang ini.</div>'; return; }
+
+    const groups = {};
+    list.forEach(l => { (groups[l.tanggal] = groups[l.tanggal] || []).push(l); });
+    $('lBody').innerHTML = Object.keys(groups).sort().reverse().map(tgl => `
+      <div class="lap-group">
+        <h3>${U.fmtTgl(tgl)} · ${groups[tgl].length} laporan</h3>
+        <div class="lap-list">${groups[tgl].map(l => `
+          <article class="card lap-item">
+            <header><div><b>${U.esc(l.nama)}</b> <small>${U.esc(l.karyawanId)}</small></div><small>diubah ${U.esc(l.diubah.slice(11, 16))}</small></header>
+            ${Lap.view(l)}
+          </article>`).join('')}</div>
+      </div>`).join('');
+  }
+
+  function exportLaporan() {
+    if (!S.laporan || !S.laporan.length) return U.toast('Tidak ada laporan untuk diekspor', 'err');
+    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [['Tanggal', 'ID Karyawan', 'Nama', 'No', 'Pekerjaan', 'Status', 'Catatan / Rencana', 'Diubah'].map(q).join(';')];
+    [...S.laporan].reverse().forEach(l => {
+      const items = l.items.length ? l.items : [{ t: '', s: '' }];
+      items.forEach((it, i) => lines.push([l.tanggal, l.karyawanId, l.nama, l.items.length ? i + 1 : '', it.t, it.s, i === 0 ? l.catatan : '', l.diubah].map(q).join(';')));
+    });
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `laporan_kerja_${$('lDari').value}_sd_${$('lSampai').value}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
   /* ================= KARYAWAN ================= */
   async function loadKaryawan(silent) {
     try {
       S.karyawan = await adm('karyawan');
-      $('aKaryawan').innerHTML = '<option value="">Semua karyawan</option>' +
+      $('aKaryawan').innerHTML = $('lKaryawan').innerHTML = '<option value="">Semua karyawan</option>' +
         S.karyawan.map(k => `<option value="${U.esc(k.id)}">${U.esc(k.nama)} · ${U.esc(k.id)}</option>`).join('');
       if (S.tab === 'karyawan') renderKaryawan();
       return true;
@@ -482,6 +551,8 @@
       $('s_rad').value = s.radius_meter;
       $('s_foto').value = s.wajib_foto === 'tidak' ? 'tidak' : 'ya';
       $('s_acc').value = s.akurasi_maks;
+      $('s_lap').value = s.wajib_laporan === 'ya' ? 'ya' : 'tidak';
+      $('s_laphari').value = s.laporan_edit_hari;
       $('s_pw').value = $('s_pw2').value = '';
     } catch (e) { U.toast(e.message, 'err'); }
   }
@@ -513,6 +584,7 @@
         toleransi_menit: $('s_tol').value, radius_meter: $('s_rad').value,
         kantor_lat: $('s_lat').value.trim(), kantor_lng: $('s_lng').value.trim(),
         wajib_foto: $('s_foto').value, akurasi_maks: $('s_acc').value,
+        wajib_laporan: $('s_lap').value, laporan_edit_hari: $('s_laphari').value,
         password_baru: pw
       });
       U.session.set('adm_instansi', s.nama_instansi);

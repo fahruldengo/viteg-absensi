@@ -52,6 +52,14 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 
 Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan yang dinonaktifkan langsung keluar.
 
+## Laporan kerja harian
+
+- Karyawan menulis daftar pekerjaan per hari (status **Selesai / Proses / Kendala**) + catatan/rencana besok.
+- Diisi saat **Absen Pulang** (halaman absen) atau kapan saja di **Performa Saya**.
+- Pengaturan: laporan **wajib/opsional** saat absen pulang, dan batas hari karyawan boleh mengisi/mengubah (default 3 = hari ini + 2 hari sebelumnya).
+- Admin: tab **Laporan Kerja** (filter tanggal & karyawan, daftar yang belum mengisi, export CSV per pekerjaan) dan laporan tampil di **Detail** absensi.
+- Disimpan di sheet **Laporan** (satu baris per karyawan per hari).
+
 ## Foto lokasi & GPS
 
 - Foto diambil **langsung dari kamera** (tidak bisa dari galeri), diberi watermark jam server, tanggal, nama, koordinat, akurasi, dan jarak ke kantor.

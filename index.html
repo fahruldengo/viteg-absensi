@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261116a">
+  <link rel="stylesheet" href="style.css?v=20261117a">
 </head>
 <body>
   <main class="absen-wrap">
@@ -46,6 +46,12 @@
         <div><span>Masuk</span><b id="stMasuk">—</b></div>
         <div><span>Pulang</span><b id="stPulang">—</b></div>
         <div><span>Status</span><b id="stStatus">—</b></div>
+      </div>
+
+      <div id="lapSection" class="lap-section hidden">
+        <label class="lbl">Laporan kerja hari ini <span id="lapReq" class="req"></span></label>
+        <div class="lap-info" id="lapInfo">Tulis pekerjaan yang Anda kerjakan hari ini, lalu absen pulang.</div>
+        <div id="lapEditor"></div>
       </div>
 
       <label class="lbl">Foto Lokasi <span id="fotoReq" class="req"></span></label>
@@ -89,8 +95,8 @@
 
   <div id="toast" class="toast"></div>
 
-  <script src="config.js?v=20261116a"></script>
-  <script src="api.js?v=20261116a"></script>
-  <script src="absen.js?v=20261116a"></script>
+  <script src="config.js?v=20261117a"></script>
+  <script src="api.js?v=20261117a"></script>
+  <script src="absen.js?v=20261117a"></script>
 </body>
 </html>

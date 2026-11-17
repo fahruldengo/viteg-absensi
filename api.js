@@ -103,3 +103,57 @@ const U = {
     U._tt = setTimeout(() => { t.className = 'toast'; }, 3800);
   }
 };
+
+// Komponen laporan kerja harian (dipakai halaman absen, Performa Saya, admin)
+const Lap = {
+  STATUS: ['Selesai', 'Proses', 'Kendala'],
+  CONTOH: 'Contoh: Rekap data penjualan outlet',
+  editor(el, items = [], opts = {}) {
+    el.innerHTML = `<div class="lap-ed"><div class="lap-rows"></div>
+      <button type="button" class="btn btn-ghost btn-sm lap-add">+ Tambah pekerjaan</button></div>`;
+    const rows = el.querySelector('.lap-rows');
+    const addRow = (it = {}, focus) => {
+      if (rows.children.length >= 30) return U.toast('Maksimal 30 pekerjaan per hari', 'err');
+      const r = document.createElement('div');
+      r.className = 'lap-row';
+      r.innerHTML = `<span class="lap-no"></span>
+        <input class="inp lap-t" maxlength="300" placeholder="${U.esc(Lap.CONTOH)}" value="${U.esc(it.t || '')}">
+        <select class="inp lap-s">${Lap.STATUS.map(s => `<option ${s === (it.s || 'Selesai') ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        <button type="button" class="lap-del" aria-label="Hapus baris">×</button>`;
+      const sel = r.querySelector('.lap-s');
+      const paint = () => { sel.dataset.s = sel.value; };
+      sel.addEventListener('change', paint); paint();
+      r.querySelector('.lap-t').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addRow({}, true); }
+      });
+      r.querySelector('.lap-del').addEventListener('click', () => {
+        if (rows.children.length > 1) r.remove(); else { r.querySelector('.lap-t').value = ''; }
+        renum(); opts.onChange && opts.onChange();
+      });
+      r.querySelector('.lap-t').addEventListener('input', () => opts.onChange && opts.onChange());
+      rows.appendChild(r);
+      renum();
+      if (focus) r.querySelector('.lap-t').focus();
+    };
+    const renum = () => [...rows.children].forEach((r, i) => { r.querySelector('.lap-no').textContent = i + 1; });
+    el.querySelector('.lap-add').addEventListener('click', () => addRow({}, true));
+    const api = {
+      set(list) { rows.innerHTML = ''; (list && list.length ? list : [{}]).forEach(it => addRow(it)); },
+      get() {
+        return [...rows.children].map(r => ({ t: r.querySelector('.lap-t').value.trim(), s: r.querySelector('.lap-s').value }))
+          .filter(it => it.t);
+      },
+      disable(d) { el.querySelectorAll('input,select,button').forEach(x => { x.disabled = d; }); }
+    };
+    api.set(items);
+    return api;
+  },
+  badge(s) {
+    return `<span class="badge ${{ Selesai: 'b-ok', Proses: 'b-info', Kendala: 'b-bad' }[s] || 'b-none'}">${U.esc(s)}</span>`;
+  },
+  view(lap) {
+    if (!lap || (!lap.items.length && !lap.catatan)) return '<p class="muted" style="margin:0;font-size:13px">Belum ada laporan kerja.</p>';
+    return `<ol class="lap-view">${lap.items.map(it => `<li><span>${U.esc(it.t)}</span>${Lap.badge(it.s)}</li>`).join('')}</ol>
+      ${lap.catatan ? `<div class="lap-note"><b>Catatan / rencana:</b> ${U.esc(lap.catatan)}</div>` : ''}`;
+  }
+};

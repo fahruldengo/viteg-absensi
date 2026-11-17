@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261116a">
+  <link rel="stylesheet" href="style.css?v=20261117a">
 </head>
 <body>
 
@@ -41,6 +41,7 @@
     <nav class="tabs">
       <button class="tab active" data-tab="dashboard">Dashboard</button>
       <button class="tab" data-tab="absensi">Data Absensi</button>
+      <button class="tab" data-tab="laporan">Laporan Kerja</button>
       <button class="tab" data-tab="karyawan">Karyawan</button>
       <button class="tab" data-tab="pengaturan">Pengaturan</button>
     </nav>
@@ -105,6 +106,23 @@
         </div>
       </section>
 
+      <!-- LAPORAN KERJA -->
+      <section id="tab-laporan" class="tab-pane hidden">
+        <div class="sec-head">
+          <div><h2>Laporan Kerja</h2><p id="lInfo">Pekerjaan harian yang dilaporkan karyawan.</p></div>
+          <div class="toolbar"><button class="btn btn-ghost btn-sm" id="lExport">Export CSV</button></div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <input type="date" id="lDari" class="inp" title="Dari tanggal">
+          <span class="muted">s/d</span>
+          <input type="date" id="lSampai" class="inp" title="Sampai tanggal">
+          <select id="lKaryawan" class="inp"><option value="">Semua karyawan</option></select>
+          <button class="btn btn-dark btn-sm" id="lLoad">Tampilkan</button>
+        </div>
+        <div id="lMissing"></div>
+        <div id="lBody"><div class="empty">Memuat…</div></div>
+      </section>
+
       <!-- KARYAWAN -->
       <section id="tab-karyawan" class="tab-pane hidden">
         <div class="sec-head">
@@ -157,6 +175,14 @@
             <div class="full hint">Foto disimpan di Google Drive folder “Foto Absensi” milik akun Apps Script. Akurasi hanya dicek bila radius &gt; 0; 0 = tidak dicek. Disarankan 50–100 m.</div>
           </div>
 
+          <h3>Laporan Kerja</h3>
+          <div class="form-grid">
+            <div><label class="lbl" for="s_lap">Laporan saat absen pulang</label>
+              <select id="s_lap" class="inp"><option value="tidak">Opsional</option><option value="ya">Wajib</option></select></div>
+            <div><label class="lbl" for="s_laphari">Batas isi / ubah laporan (hari)</label><input id="s_laphari" type="number" min="1" max="31" class="inp" required></div>
+            <div class="full hint">Contoh 3 = karyawan bisa mengisi laporan hari ini dan 2 hari sebelumnya lewat halaman Performa Saya. Lewat dari itu, laporan terkunci.</div>
+          </div>
+
           <h3>Keamanan</h3>
           <label class="lbl" for="s_pw">Password admin baru</label>
           <input id="s_pw" type="password" class="inp" placeholder="Kosongkan jika tidak diganti" autocomplete="new-password">
@@ -173,8 +199,8 @@
   <div id="modalWrap" class="overlay hidden"><div class="modal" id="modal"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="config.js?v=20261116a"></script>
-  <script src="api.js?v=20261116a"></script>
-  <script src="admin.js?v=20261116a"></script>
+  <script src="config.js?v=20261117a"></script>
+  <script src="api.js?v=20261117a"></script>
+  <script src="admin.js?v=20261117a"></script>
 </body>
 </html>

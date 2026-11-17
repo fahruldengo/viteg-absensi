@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261116a">
+  <link rel="stylesheet" href="style.css?v=20261117a">
 </head>
 <body>
 
@@ -49,6 +49,19 @@
         <button class="btn btn-ghost btn-sm" id="btnLogout">Keluar</button>
       </div>
     </header>
+
+    <section class="card block" id="lapCard">
+      <div class="lap-card-head">
+        <h2 style="margin:0;font-size:16px;font-weight:800">Laporan Kerja</h2>
+        <select id="lapTgl" class="inp" aria-label="Tanggal laporan"></select>
+      </div>
+      <div id="lapEdit">
+        <div id="lapEdSaya"></div>
+        <label class="lbl" for="lapCat">Catatan / rencana besok</label>
+        <textarea id="lapCat" class="inp" maxlength="1000" placeholder="Opsional: kendala, kebutuhan, atau rencana besok"></textarea>
+        <div class="lap-save"><small id="lapStatus">—</small><button type="button" class="btn btn-primary" id="lapSimpan">Simpan Laporan</button></div>
+      </div>
+    </section>
 
     <div class="month-nav">
       <button class="btn btn-ghost btn-sm" id="prev" aria-label="Bulan sebelumnya">‹</button>
@@ -96,8 +109,8 @@
   <div id="modalWrap" class="overlay hidden"><div class="modal" id="modal"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="config.js?v=20261116a"></script>
-  <script src="api.js?v=20261116a"></script>
-  <script src="saya.js?v=20261116a"></script>
+  <script src="config.js?v=20261117a"></script>
+  <script src="api.js?v=20261117a"></script>
+  <script src="saya.js?v=20261117a"></script>
 </body>
 </html>

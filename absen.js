@@ -68,6 +68,8 @@
   async function onSelect() {
     const id = $('karyawan').value;
     S.rec = null;
+    if (lapEd) lapEd.set([]);
+    renderLaporan();
     setButtons();
     if (!id) { $('statusBox').classList.add('hidden'); return; }
     U.store.set('absen_last_id', id);
@@ -84,11 +86,25 @@
     }
   }
 
+  let lapEd = null;
+  function renderLaporan() {
+    const r = S.rec;
+    const tampil = !!(r && r.jamMasuk && !r.jamPulang);
+    $('lapSection').classList.toggle('hidden', !tampil);
+    if (!tampil) return;
+    if (!lapEd) lapEd = Lap.editor($('lapEditor'));
+    $('lapReq').textContent = S.info && S.info.wajib_laporan && !r.laporanCount ? '(wajib)' : '(opsional)';
+    $('lapInfo').textContent = r.laporanCount
+      ? `Sudah ada ${r.laporanCount} pekerjaan tercatat hari ini. Isian di bawah akan ditambahkan.`
+      : 'Tulis pekerjaan yang Anda kerjakan hari ini. Tersimpan saat Anda absen pulang.';
+  }
+
   function renderStatus() {
     const r = S.rec;
     $('stMasuk').textContent = r && r.jamMasuk ? U.hm(r.jamMasuk) : '—';
     $('stPulang').textContent = r && r.jamPulang ? U.hm(r.jamPulang) : '—';
     $('stStatus').textContent = r ? r.status : 'Belum';
+    renderLaporan();
     setButtons(true);
   }
 
@@ -154,6 +170,11 @@
     if (S.foto && Date.now() - S.foto.at > FOTO_MAKS_UMUR) { resetFoto(); return U.toast('Foto sudah lebih dari 3 menit. Silakan ambil ulang.', 'err'); }
     if (!/^\d{4,6}$/.test(pin)) { $('pin').focus(); return U.toast('Masukkan PIN 4–6 digit', 'err'); }
 
+    const laporan = tipe === 'pulang' && lapEd ? lapEd.get() : [];
+    if (tipe === 'pulang' && S.info && S.info.wajib_laporan && !laporan.length && !(S.rec && S.rec.laporanCount)) {
+      $('lapEditor').querySelector('.lap-t').focus();
+      return U.toast('Isi laporan kerja hari ini sebelum absen pulang', 'err');
+    }
     if (tipe === 'pulang' && S.info) {
       const now = U.toMin(U.time(new Date(Date.now() + S.offset)));
       if (now < U.toMin(S.info.jam_pulang) && !confirm(`Belum jam pulang (${S.info.jam_pulang}). Tetap absen pulang sekarang?`)) return;
@@ -169,8 +190,10 @@
       const res = await API.post('absen', {
         id, pin, tipe,
         lat: pos ? pos.lat : '', lng: pos ? pos.lng : '', acc: pos ? pos.acc : '',
-        foto: S.foto ? S.foto.data : ''
+        foto: S.foto ? S.foto.data : '',
+        laporan
       });
+      if (lapEd) lapEd.set([]);
       $('pin').value = '';
       resetFoto();
       showResult(res);
@@ -194,6 +217,7 @@
     let desc = r.tipe === 'masuk' ? 'Absen masuk tercatat' : 'Absen pulang tercatat';
     if (late) desc += ` · terlambat ${U.menit(r.telat)}`;
     if (r.tipe === 'pulang') desc += ` · durasi kerja ${U.menit(r.durasi)}${r.awal ? ' (pulang lebih awal)' : ''}`;
+    if (r.tipe === 'pulang' && r.laporan) desc += ` · ${r.laporan} pekerjaan dilaporkan`;
     $('rDesc').textContent = desc;
     openResult();
   }

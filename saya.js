@@ -43,6 +43,7 @@
 
   function logoutLocal() {
     S.token = null; S.data = null; S.foto.clear();
+    L.init = false; L.dirty = false; L.tgl = null;
     U.store.del('emp_token');
     showLogin();
   }
@@ -76,12 +77,76 @@
   $('prev').addEventListener('click', () => { S.bulan = geser(S.bulan, -1); load(); });
   $('next').addEventListener('click', () => { S.bulan = geser(S.bulan, 1); load(); });
 
+  /* ---------- Laporan kerja ---------- */
+  const L = { ed: null, tgl: null, dirty: false, init: false };
+  const minusHari = (iso, n) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10);
+  };
+
+  function initLaporan(d) {
+    if (L.init) return;
+    L.init = true;
+    L.ed = Lap.editor($('lapEdSaya'), [], { onChange: () => { L.dirty = true; } });
+    $('lapCat').addEventListener('input', () => { L.dirty = true; });
+    const n = Math.max(1, d.laporan_edit_hari || 1);
+    $('lapTgl').innerHTML = Array.from({ length: n }, (_, i) => {
+      const t = minusHari(d.hari_ini, i);
+      return `<option value="${t}">${i === 0 ? 'Hari ini' : i === 1 ? 'Kemarin' : U.fmtTgl(t)}</option>`;
+    }).join('');
+    $('lapTgl').addEventListener('change', () => {
+      if (L.dirty && !confirm('Perubahan laporan belum disimpan. Pindah tanggal?')) { $('lapTgl').value = L.tgl; return; }
+      loadLaporan($('lapTgl').value);
+    });
+    $('lapSimpan').addEventListener('click', simpanLaporan);
+    loadLaporan(d.hari_ini);
+  }
+
+  async function loadLaporan(tgl) {
+    L.tgl = tgl;
+    L.ed.disable(true);
+    $('lapStatus').textContent = 'Memuat…';
+    try {
+      const r = await emp('laporanSaya', { tanggal: tgl });
+      L.ed.set(r.laporan ? r.laporan.items : []);
+      $('lapCat').value = r.laporan ? r.laporan.catatan : '';
+      L.dirty = false;
+      L.ed.disable(!r.bisaEdit);
+      $('lapCat').disabled = $('lapSimpan').disabled = !r.bisaEdit;
+      $('lapStatus').textContent = r.laporan
+        ? `Tersimpan ${r.laporan.diubah.slice(11, 16)} · ${r.laporan.items.length} pekerjaan`
+        : 'Belum diisi';
+    } catch (e) {
+      $('lapStatus').textContent = e.message;
+    }
+  }
+
+  async function simpanLaporan() {
+    const items = L.ed.get();
+    const catatan = $('lapCat').value.trim();
+    const btn = $('lapSimpan');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Menyimpan…';
+    try {
+      const r = await emp('simpanLaporan', { tanggal: L.tgl, items, catatan }, true);
+      L.dirty = false;
+      $('lapStatus').textContent = r ? `Tersimpan ${r.diubah.slice(11, 16)} · ${r.items.length} pekerjaan` : 'Laporan dikosongkan';
+      U.toast(r ? 'Laporan kerja disimpan' : 'Laporan dihapus', 'ok');
+      if (L.tgl.slice(0, 7) === S.bulan) load();
+    } catch (e) {
+      U.toast(e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Simpan Laporan';
+    }
+  }
+  window.addEventListener('beforeunload', e => { if (L.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
   async function load() {
     $('bulanLabel').textContent = blnLabel(S.bulan);
     $('content').style.opacity = .45;
     try {
       const d = S.data = await emp('saya', { bulan: S.bulan });
       render(d);
+      initLaporan(d);
     } catch (e) {
       if (S.token) U.toast(e.message, 'err');
     } finally {
@@ -142,7 +207,7 @@
     for (let i = 1; i <= jml; i++) {
       const tgl = `${d.bulan}-${String(i).padStart(2, '0')}`;
       const r = map[tgl];
-      const cls = ['cal-day', warna(r), tgl === d.hari_ini ? 'today' : '', tgl > d.hari_ini ? 'future' : ''].join(' ');
+      const cls = ['cal-day', warna(r), tgl === d.hari_ini ? 'today' : '', tgl > d.hari_ini ? 'future' : '', d.laporan && d.laporan[tgl] ? 'has-lap' : ''].join(' ');
       html += `<button class="${cls}" ${r ? `data-id="${U.esc(r.id)}"` : 'disabled'} title="${r ? U.esc(r.status) : ''}">
         <b>${i}</b>${r && r.jamMasuk ? `<small>${U.hm(r.jamMasuk)}</small>` : ''}</button>`;
     }
@@ -174,13 +239,14 @@
     }
     $('riwayat').innerHTML = d.riwayat.map(r => {
       const nFoto = (r.fotoMasuk ? 1 : 0) + (r.fotoPulang ? 1 : 0);
+      const lap = d.laporan && d.laporan[r.tanggal];
       return `<button class="riw-item card" data-id="${U.esc(r.id)}">
         <div class="riw-date"><b>${+r.tanggal.slice(8)}</b><span>${U.fmtTgl(r.tanggal).split(',')[0]}</span></div>
         <div class="riw-main">
           <div>${U.badge(r.status)}${r.telat ? ` <span class="riw-late">+${U.menit(r.telat)}</span>` : ''}</div>
           <div class="riw-time">${r.jamMasuk ? `${U.hm(r.jamMasuk)} – ${U.hm(r.jamPulang)}` : (r.ket ? U.esc(r.ket) : '—')}</div>
         </div>
-        <div class="riw-side">${r.jamMasuk ? U.durasi(r.jamMasuk, r.jamPulang) : ''}${nFoto ? `<small>${nFoto} foto</small>` : ''}</div>
+        <div class="riw-side">${r.jamMasuk ? U.durasi(r.jamMasuk, r.jamPulang) : ''}${lap ? `<small>${lap.items.length} pekerjaan</small>` : ''}${nFoto ? `<small>${nFoto} foto</small>` : ''}</div>
       </button>`;
     }).join('');
   }
@@ -197,6 +263,7 @@
       <h3>${U.fmtTgl(r.tanggal)}</h3>
       <p class="muted" style="margin:0;font-size:13px">${U.badge(r.status)}${r.telat ? ` · terlambat ${U.menit(r.telat)}` : ''}${r.jamMasuk && r.jamPulang ? ` · ${U.durasi(r.jamMasuk, r.jamPulang)}` : ''}</p>
       ${r.ket ? `<p style="margin:10px 0 0;font-size:14px">${U.esc(r.ket)}</p>` : ''}
+      <div class="lap-section"><div class="lbl">Laporan kerja</div>${Lap.view(S.data.laporan && S.data.laporan[r.tanggal])}</div>
       ${STATUS_HADIR.includes(r.status) ? `<div class="foto-grid">
         ${box('Masuk', r.jamMasuk, r.fotoMasuk, r.alamatMasuk, r.lokasiMasuk)}
         ${box('Pulang', r.jamPulang, r.fotoPulang, r.alamatPulang, r.lokasiPulang)}

@@ -19,14 +19,15 @@
 
 const TZ = 'Asia/Makassar'; // WITA. Samakan dengan TIMEZONE di config.js
 
-const SH = { K: 'Karyawan', A: 'Absensi', P: 'Pengaturan' };
+const SH = { K: 'Karyawan', A: 'Absensi', P: 'Pengaturan', L: 'Laporan' };
 
 const HEAD = {
   Karyawan:   ['ID', 'Nama', 'Jabatan', 'Divisi', 'PIN_Hash', 'Status', 'Dibuat'],
   Absensi:    ['ID', 'Tanggal', 'KaryawanID', 'Nama', 'JamMasuk', 'JamPulang', 'Status',
                'TelatMenit', 'LokasiMasuk', 'LokasiPulang', 'JarakMasuk', 'Keterangan', 'Diubah',
                'FotoMasuk', 'FotoPulang', 'AlamatMasuk', 'AlamatPulang'],
-  Pengaturan: ['Key', 'Value']
+  Pengaturan: ['Key', 'Value'],
+  Laporan:    ['ID', 'Tanggal', 'KaryawanID', 'Nama', 'Item', 'Catatan', 'Dibuat', 'Diubah']
 };
 
 const DEF = {
@@ -38,8 +39,13 @@ const DEF = {
   kantor_lng: '',
   radius_meter: '0',   // 0 = tanpa batas lokasi
   wajib_foto: 'ya',    // ya | tidak
-  akurasi_maks: '100'  // meter; 0 = tidak dicek
+  akurasi_maks: '100', // meter; 0 = tidak dicek
+  wajib_laporan: 'tidak',   // ya = laporan kerja wajib saat absen pulang
+  laporan_edit_hari: '3'    // karyawan bisa isi/ubah laporan hari ini + 2 hari sebelumnya
 };
+
+const LAPORAN_STATUS = ['Selesai', 'Proses', 'Kendala'];
+const LAPORAN_MAX_ITEM = 30;
 
 const FOTO_MAX_BYTES = 1500000; // batas ukuran foto (base64) per absen
 
@@ -77,6 +83,8 @@ const EMP = {
   saya: saya_,
   fotoSaya: fotoSaya_,
   gantiPin: gantiPin_,
+  laporanSaya: laporanSaya_,
+  simpanLaporan: simpanLaporan_,
   logoutKaryawan: logoutKaryawan_
 };
 
@@ -90,6 +98,7 @@ const ADMIN = {
   saveAbsensi: saveAbsensi_,
   deleteAbsensi: deleteAbsensi_,
   foto: foto_,
+  laporan: listLaporan_,
   settings: getSettings_,
   saveSettings: saveSettings_
 };
@@ -140,6 +149,7 @@ function info_() {
     kantor_lng: st.kantor_lng,
     wajib_foto: st.wajib_foto === 'ya',
     akurasi_maks: Number(st.akurasi_maks) || 0,
+    wajib_laporan: st.wajib_laporan === 'ya',
     server_ms: Date.now(),
     tanggal: today_(),
     karyawan: rows_(SH.K)
@@ -152,7 +162,11 @@ function info_() {
 function status_(p) {
   const tgl = today_();
   const rec = rows_(SH.A).find(r => r.Tanggal === tgl && r.KaryawanID === p.id);
-  return rec ? pubAbs_(rec) : null;
+  if (!rec) return null;
+  const out = pubAbs_(rec);
+  const lap = getLaporan_(tgl, p.id);
+  out.laporanCount = lap ? lap.items.length : 0; // isi laporan tidak dibuka di halaman publik
+  return out;
 }
 
 function absen_(p) {
@@ -220,16 +234,26 @@ function absen_(p) {
     // pulang
     if (!rec || !rec.JamMasuk) throw new Error('Anda belum absen masuk hari ini');
     if (rec.JamPulang) throw new Error('Anda sudah absen pulang pukul ' + rec.JamPulang.slice(0, 5));
+    const itemBaru = cleanItems_(p.laporan);
+    const lapAda = getLaporan_(tgl, k.ID);
+    if (st.wajib_laporan === 'ya' && !itemBaru.length && !(lapAda && lapAda.items.length)) {
+      throw new Error('Isi laporan kerja hari ini sebelum absen pulang');
+    }
     rec.JamPulang = jam;
     rec.LokasiPulang = lok;
     rec.FotoPulang = foto ? simpanFoto_(foto, tgl, k, 'pulang', jam) : '';
     rec.AlamatPulang = hasLoc ? alamat_(lat, lng) : '';
     rec.Diubah = stamp_();
     writeObj_(SH.A, rec, rec._row);
+    if (itemBaru.length) {
+      const gabung = (lapAda ? lapAda.items : []).concat(itemBaru).slice(0, LAPORAN_MAX_ITEM);
+      saveLaporan_(tgl, k, gabung, lapAda ? lapAda.catatan : '', lapAda);
+    }
     return {
       tipe: 'pulang', nama: k.Nama, jam: jam, status: rec.Status,
       awal: toMin_(jam) < toMin_(st.jam_pulang),
-      durasi: toMin_(jam) - toMin_(rec.JamMasuk)
+      durasi: toMin_(jam) - toMin_(rec.JamMasuk),
+      laporan: itemBaru.length
     };
   });
 }
@@ -296,6 +320,8 @@ function saya_(p, kid) {
     ringkas: ringkas_(list, st),
     tren: tren,
     riwayat: list.map(pubAbs_),
+    laporan: laporanBulan_(kid, bulan),
+    laporan_edit_hari: Number(st.laporan_edit_hari) || 0,
     pertama: semua.reduce((min, a) => (!min || a.Tanggal < min) ? a.Tanggal : min, '')
   };
 }
@@ -352,6 +378,94 @@ function gantiPin_(p, kid) {
     writeObj_(SH.K, k, k._row);
     return true;
   });
+}
+
+/* ================= LAPORAN KERJA ================= */
+
+function cleanItems_(raw) {
+  let arr = raw;
+  if (typeof raw === 'string') { try { arr = JSON.parse(raw || '[]'); } catch (e) { throw new Error('Format laporan tidak valid'); } }
+  if (!Array.isArray(arr)) return [];
+  return arr.map(it => ({
+    t: String((it && it.t) || '').replace(/\s+/g, ' ').trim().slice(0, 300),
+    s: LAPORAN_STATUS.indexOf(it && it.s) >= 0 ? it.s : 'Selesai'
+  })).filter(it => it.t).slice(0, LAPORAN_MAX_ITEM);
+}
+
+function parseLap_(r) {
+  let items = [];
+  try { items = JSON.parse(r.Item || '[]'); } catch (e) {}
+  return { id: r.ID, tanggal: r.Tanggal, karyawanId: r.KaryawanID, nama: r.Nama,
+           items: items, catatan: r.Catatan, dibuat: r.Dibuat, diubah: r.Diubah, _row: r._row };
+}
+
+function getLaporan_(tgl, kid) {
+  const r = rows_(SH.L).find(x => x.Tanggal === tgl && x.KaryawanID === kid);
+  return r ? parseLap_(r) : null;
+}
+
+function saveLaporan_(tgl, k, items, catatan, ada) {
+  const obj = {
+    ID: ada ? ada.id : 'L' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase(),
+    Tanggal: tgl, KaryawanID: k.ID, Nama: k.Nama,
+    Item: JSON.stringify(items), Catatan: String(catatan || '').trim().slice(0, 1000),
+    Dibuat: ada ? ada.dibuat : stamp_(), Diubah: stamp_()
+  };
+  writeObj_(SH.L, obj, ada ? ada._row : null);
+  return pubLap_(parseLap_(obj));
+}
+
+function pubLap_(l) {
+  return { id: l.id, tanggal: l.tanggal, karyawanId: l.karyawanId, nama: l.nama,
+           items: l.items, catatan: l.catatan, diubah: l.diubah };
+}
+
+function batasLaporan_() {
+  const n = Math.max(1, Number(settings_().laporan_edit_hari) || 1);
+  const t = today_().split('-').map(Number);
+  return new Date(Date.UTC(t[0], t[1] - 1, t[2] - (n - 1))).toISOString().slice(0, 10);
+}
+
+function laporanBulan_(kid, bulan) {
+  const o = {};
+  rows_(SH.L).filter(r => r.KaryawanID === kid && r.Tanggal.slice(0, 7) === bulan)
+    .forEach(r => { o[r.Tanggal] = pubLap_(parseLap_(r)); });
+  return o;
+}
+
+function laporanSaya_(p, kid) {
+  const tgl = validDate_(p.tanggal) ? p.tanggal : today_();
+  const lap = getLaporan_(tgl, kid);
+  return { tanggal: tgl, laporan: lap ? pubLap_(lap) : null,
+           bisaEdit: tgl <= today_() && tgl >= batasLaporan_(), batas: batasLaporan_() };
+}
+
+function simpanLaporan_(p, kid) {
+  return withLock_(() => {
+    const k = rows_(SH.K).find(r => r.ID === kid && r.Status === 'Aktif');
+    if (!k) throw new Error('SESI_HABIS');
+    const tgl = p.tanggal;
+    if (!validDate_(tgl)) throw new Error('Tanggal tidak valid');
+    if (tgl > today_()) throw new Error('Tidak bisa mengisi laporan untuk tanggal mendatang');
+    if (tgl < batasLaporan_()) throw new Error('Laporan tanggal ini sudah dikunci (batas ' + (Number(settings_().laporan_edit_hari) || 1) + ' hari)');
+    const items = cleanItems_(p.items);
+    const catatan = String(p.catatan || '').trim();
+    const ada = getLaporan_(tgl, kid);
+    if (!items.length && !catatan) {
+      if (ada) sheet_(SH.L).deleteRow(ada._row);
+      return null;
+    }
+    return saveLaporan_(tgl, k, items, catatan, ada);
+  });
+}
+
+function listLaporan_(p) {
+  const dari = validDate_(p.dari) ? p.dari : '0000-00-00';
+  const sampai = validDate_(p.sampai) ? p.sampai : '9999-99-99';
+  let r = rows_(SH.L).filter(x => x.Tanggal >= dari && x.Tanggal <= sampai);
+  if (p.karyawanId) r = r.filter(x => x.KaryawanID === p.karyawanId);
+  r.sort((a, b) => b.Tanggal.localeCompare(a.Tanggal) || a.Nama.localeCompare(b.Nama));
+  return r.map(x => pubLap_(parseLap_(x)));
 }
 
 /* ================= ADMIN ================= */
@@ -517,6 +631,8 @@ function saveSettings_(p) {
     }
     if (rad > 0 && !(lat && lng)) throw new Error('Isi koordinat kantor jika radius diaktifkan');
     const cur = settings_();
+    const lapHari = parseInt(p.laporan_edit_hari === undefined || p.laporan_edit_hari === '' ? cur.laporan_edit_hari : p.laporan_edit_hari, 10);
+    if (!(lapHari >= 1 && lapHari <= 31)) throw new Error('Batas isi laporan harus 1–31 hari');
     const accMax = parseInt(p.akurasi_maks === undefined || p.akurasi_maks === '' ? cur.akurasi_maks : p.akurasi_maks, 10);
     if (!(accMax >= 0 && accMax <= 5000)) throw new Error('Akurasi maksimal tidak valid');
 
@@ -529,6 +645,8 @@ function saveSettings_(p) {
     setSetting_('kantor_lng', lng);
     setSetting_('wajib_foto', p.wajib_foto === 'tidak' || p.wajib_foto === 'ya' ? p.wajib_foto : cur.wajib_foto);
     setSetting_('akurasi_maks', accMax);
+    setSetting_('wajib_laporan', p.wajib_laporan === 'ya' || p.wajib_laporan === 'tidak' ? p.wajib_laporan : cur.wajib_laporan);
+    setSetting_('laporan_edit_hari', lapHari);
 
     if (p.password_baru) {
       if (String(p.password_baru).length < 6) throw new Error('Password baru minimal 6 karakter');

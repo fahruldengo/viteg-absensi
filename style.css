@@ -311,3 +311,37 @@ td.act .btn + .btn { margin-left: 4px; }
 .riw-side { text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .riw-side small { display: block; font-size: 11px; color: var(--ink-3); font-weight: 600; }
 @media (max-width: 480px) { .saya-stats { grid-template-columns: 1fr 1fr; } .ring { width: 78px; height: 78px; } .ring span { font-size: 19px; } .trend { height: 140px; gap: 6px; } }
+
+/* ---------- Laporan kerja ---------- */
+.lap-rows { display: flex; flex-direction: column; gap: 8px; }
+.lap-row { display: grid; grid-template-columns: 20px 1fr 112px 32px; gap: 6px; align-items: center; }
+.lap-no { font-size: 12px; font-weight: 700; color: var(--ink-3); text-align: center; }
+.lap-row .inp { padding: 9px 11px; font-size: 14px; }
+.lap-s { font-weight: 700; font-size: 13px !important; padding-right: 26px !important; background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50% !important; }
+.lap-s[data-s="Selesai"] { color: var(--accent); }
+.lap-s[data-s="Proses"] { color: var(--info); }
+.lap-s[data-s="Kendala"] { color: var(--bad); }
+.lap-del { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--ink-3); cursor: pointer; height: 38px; border-radius: 8px; }
+.lap-del:hover { background: var(--bad-soft); color: var(--bad); }
+.lap-add { margin-top: 10px; }
+.lap-section { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.lap-section .lbl { margin-top: 0; }
+.lap-info { font-size: 12px; color: var(--ink-3); margin: -2px 0 8px; }
+.lap-view { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.lap-view li { padding-left: 2px; }
+.lap-view li span:first-child { margin-right: 8px; }
+.lap-view .badge { font-size: 11px; padding: 2px 8px; vertical-align: 1px; }
+.lap-note { margin-top: 10px; font-size: 13px; background: #f6f5f0; border-radius: 8px; padding: 9px 11px; color: var(--ink-2); }
+.lap-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.lap-card-head select { width: auto; padding: 7px 30px 7px 11px; font-size: 14px; font-weight: 600; }
+.lap-save { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.lap-save small { color: var(--ink-3); font-size: 12px; }
+.lap-group { margin-bottom: 18px; }
+.lap-group h3 { font-size: 14px; margin: 0 0 8px; color: var(--ink-2); }
+.lap-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.lap-item { padding: 16px; }
+.lap-item header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.lap-item header small { color: var(--ink-3); font-size: 12px; }
+.lap-missing { font-size: 13px; color: var(--ink-2); background: var(--warn-soft); padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; }
+.cal-day.has-lap::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; margin-top: 1px; }
+@media (max-width: 480px) { .lap-row { grid-template-columns: 16px 1fr 32px; } .lap-row .lap-s { grid-column: 2; grid-row: 2; width: 140px; } .lap-row .lap-del { grid-row: 1; grid-column: 3; } }
