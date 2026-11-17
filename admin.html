@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261117c">
+  <link rel="stylesheet" href="style.css?v=20261117d">
 </head>
 <body>
 
@@ -74,7 +74,7 @@
           <div><h2>Data Absensi</h2><p id="aInfo">Filter dan kelola semua catatan absensi.</p></div>
           <div class="toolbar">
             <button class="btn btn-primary btn-sm" id="aAdd">+ Tambah Manual</button>
-            <button class="btn btn-ghost btn-sm" id="aExport">Export CSV</button>
+            <div class="dl-group"><span>Download</span><button class="btn btn-ghost btn-sm" id="aXlsx">Excel (.xlsx)</button><button class="btn btn-ghost btn-sm" id="aPdf">PDF</button></div>
           </div>
         </div>
         <div class="toolbar" style="margin-bottom:14px">
@@ -110,7 +110,7 @@
       <section id="tab-laporan" class="tab-pane hidden">
         <div class="sec-head">
           <div><h2>Laporan Kerja</h2><p id="lInfo">Pekerjaan harian yang dilaporkan karyawan.</p></div>
-          <div class="toolbar"><button class="btn btn-ghost btn-sm" id="lExport">Export CSV</button></div>
+          <div class="dl-group"><span>Download</span><button class="btn btn-ghost btn-sm" id="lXlsx">Excel (.xlsx)</button><button class="btn btn-ghost btn-sm" id="lPdf">PDF</button></div>
         </div>
         <div class="toolbar" style="margin-bottom:14px">
           <input type="date" id="lDari" class="inp" title="Dari tanggal">
@@ -208,8 +208,9 @@
   <div id="modalWrap" class="overlay hidden"><div class="modal" id="modal"></div></div>
   <div id="toast" class="toast"></div>
 
-  <script src="config.js?v=20261117c"></script>
-  <script src="api.js?v=20261117c"></script>
-  <script src="admin.js?v=20261117c"></script>
+  <script src="config.js?v=20261117d"></script>
+  <script src="api.js?v=20261117d"></script>
+  <script src="export.js?v=20261117d"></script>
+  <script src="admin.js?v=20261117d"></script>
 </body>
 </html>

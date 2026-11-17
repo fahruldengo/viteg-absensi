@@ -154,7 +154,8 @@
 
   $('aLoad').addEventListener('click', loadAbsensi);
   $('aAdd')?.addEventListener('click', () => openAbsensiForm({ tanggal: today(), status: 'Hadir' }, loadAbsensi));
-  $('aExport').addEventListener('click', exportCSV);
+  $('aXlsx').addEventListener('click', e => unduh(e, 'absensi', 'xlsx'));
+  $('aPdf').addEventListener('click', e => unduh(e, 'absensi', 'pdf'));
 
   async function loadAbsensi() {
     const dari = $('aDari').value, sampai = $('aSampai').value;
@@ -162,6 +163,7 @@
     $('aBody').innerHTML = '<tr><td colspan="9" class="loading-row"><span class="spinner"></span></td></tr>';
     try {
       S.absensi = await adm('absensi', { dari, sampai, karyawanId: $('aKaryawan').value, status: $('aStatus').value });
+      S.aQ = { dari, sampai, kar: $('aKaryawan').selectedIndex > 0 ? $('aKaryawan').options[$('aKaryawan').selectedIndex].text : '', status: $('aStatus').value };
       S.absensiLoaded = true;
       renderAbsensi();
     } catch (e) {
@@ -238,22 +240,7 @@
     }
   });
 
-  function exportCSV() {
-    if (!S.absensi.length) return U.toast('Tidak ada data untuk diekspor', 'err');
-    const head = ['Tanggal', 'ID Karyawan', 'Nama', 'Jam Masuk', 'Jam Pulang', 'Durasi', 'Status', 'Telat (menit)', 'Lokasi Masuk', 'Lokasi Pulang', 'Jarak Masuk (m)', 'Alamat Masuk', 'Alamat Pulang', 'Foto Masuk', 'Foto Pulang', 'Keterangan'];
-    const fl = id => id ? 'https://drive.google.com/file/d/' + id + '/view' : '';
-    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [head.map(q).join(';')].concat(
-      [...S.absensi].reverse().map(r => [r.tanggal, r.karyawanId, r.nama, r.jamMasuk, r.jamPulang, U.durasi(r.jamMasuk, r.jamPulang).replace('—', ''),
-        r.status, r.telat, r.lokasiMasuk, r.lokasiPulang, r.jarak, r.alamatMasuk, r.alamatPulang, fl(r.fotoMasuk), fl(r.fotoPulang), r.ket].map(q).join(';'))
-    );
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `absensi_${$('aDari').value}_sd_${$('aSampai').value}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
+
 
   /* ---------- Form absensi (tambah / edit) ---------- */
   function openAbsensiForm(r, after) {
@@ -379,7 +366,8 @@
     $('lDari').value = $('lSampai').value = today();
   })();
   $('lLoad').addEventListener('click', loadLaporan);
-  $('lExport').addEventListener('click', exportLaporan);
+  $('lXlsx').addEventListener('click', e => unduh(e, 'laporan', 'xlsx'));
+  $('lPdf').addEventListener('click', e => unduh(e, 'laporan', 'pdf'));
 
   async function loadLaporan() {
     const dari = $('lDari').value, sampai = $('lSampai').value;
@@ -388,6 +376,7 @@
     $('lMissing').innerHTML = '';
     try {
       S.laporan = await adm('laporan', { dari, sampai, karyawanId: $('lKaryawan').value });
+      S.lQ = { dari, sampai, kar: $('lKaryawan').selectedIndex > 0 ? $('lKaryawan').options[$('lKaryawan').selectedIndex].text : '' };
       S.laporanLoaded = true;
       renderLaporan(dari, sampai);
     } catch (e) {
@@ -424,21 +413,30 @@
       </div>`).join('');
   }
 
-  function exportLaporan() {
-    if (!S.laporan || !S.laporan.length) return U.toast('Tidak ada laporan untuk diekspor', 'err');
-    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const lines = [['Tanggal', 'ID Karyawan', 'Nama', 'No', 'Pekerjaan', 'Status', 'Mulai', 'Hari ke-', 'Catatan / Rencana', 'Diubah'].map(q).join(';')];
-    [...S.laporan].reverse().forEach(l => {
-      const items = l.items.length ? l.items : [{ t: '', s: '' }];
-      items.forEach((it, i) => lines.push([l.tanggal, l.karyawanId, l.nama, l.items.length ? i + 1 : '', it.t, it.s,
-        it.a || (it.t ? l.tanggal : ''), it.t ? Lap.hariKe(it.a || l.tanggal, l.tanggal) : '', i === 0 ? l.catatan : '', l.diubah].map(q).join(';')));
-    });
-    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `laporan_kerja_${$('lDari').value}_sd_${$('lSampai').value}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+
+
+  /* ================= DOWNLOAD EXCEL / PDF ================= */
+  async function unduh(e, jenis, format) {
+    const isAbs = jenis === 'absensi';
+    const list = isAbs ? S.absensi : S.laporan;
+    if (!list || !list.length) return U.toast('Tidak ada data untuk diunduh. Klik Tampilkan dulu.', 'err');
+    const q = (isAbs ? S.aQ : S.lQ) || {};
+    const filter = [q.kar ? 'Karyawan: ' + q.kar : '', q.status ? 'Status: ' + q.status : ''].filter(Boolean).join(' · ');
+    const meta = {
+      instansi: $('tInstansi').textContent || '',
+      dari: q.dari || list.reduce((m, x) => x.tanggal < m ? x.tanggal : m, '9999'),
+      sampai: q.sampai || list.reduce((m, x) => x.tanggal > m ? x.tanggal : m, '0000'),
+      filter
+    };
+    const btn = e.currentTarget, label = btn.textContent;
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      await (isAbs ? Export.absensi(list, meta, format) : Export.laporan(list, meta, format));
+    } catch (err) {
+      U.toast(err.message || 'Gagal membuat file', 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
   }
 
   /* ================= KARYAWAN ================= */

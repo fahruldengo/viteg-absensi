@@ -9,6 +9,7 @@ Frontend statis (GitHub Pages) + Google Apps Script (API GET-only) + Google Shee
 | `index.html` + `absen.js` | Halaman utama: absen masuk/pulang karyawan |
 | `admin.html` + `admin.js` | Panel admin: dashboard, data absensi, karyawan, pengaturan |
 | `api.js` | Helper API & format (dipakai kedua halaman) |
+| `export.js` | Download Excel (.xlsx) & PDF untuk Data Absensi & Laporan Kerja |
 | `style.css` | Tampilan |
 | `config.js` | URL API & zona waktu — **jangan ditimpa saat update** |
 | `Code.gs` | Backend Apps Script (tidak di-upload ke GitHub) |
@@ -56,7 +57,7 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 ## Panel Pantau (hanya lihat)
 
 - Untuk atasan/supervisor: `pantau.html`, login dengan password khusus.
-- Hanya bisa melihat **Dashboard kehadiran, Data Absensi (+ detail foto), Laporan Kerja**, dan export CSV.
+- Hanya bisa melihat **Dashboard kehadiran, Data Absensi (+ detail foto), Laporan Kerja**, dan download Excel/PDF.
 - Tidak bisa tambah/edit/hapus absensi, tidak ada menu Karyawan & Pengaturan — dibatasi juga di server.
 - Admin mengaktifkan/mengganti/menonaktifkan di **Pengaturan → Panel Pantau**. Mengganti atau menonaktifkan password langsung mengeluarkan semua sesi Panel Pantau.
 - Password Panel Pantau harus berbeda dari password admin.
@@ -66,12 +67,12 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 - Karyawan menulis daftar pekerjaan per hari (status **Selesai / Proses / Kendala**) + catatan/rencana besok.
 - Diisi saat **Absen Pulang** (halaman absen) atau kapan saja di **Performa Saya**.
 - Pengaturan: laporan **wajib/opsional** saat absen pulang, dan batas hari karyawan boleh mengisi/mengubah (default 3 = hari ini + 2 hari sebelumnya).
-- Admin: tab **Laporan Kerja** (filter tanggal & karyawan, daftar yang belum mengisi, export CSV per pekerjaan) dan laporan tampil di **Detail** absensi.
+- Admin: tab **Laporan Kerja** (filter tanggal & karyawan, daftar yang belum mengisi, download Excel/PDF) dan laporan tampil di **Detail** absensi.
 - Disimpan di sheet **Laporan** (satu baris per karyawan per hari).
 - **Pekerjaan lanjutan:** item berstatus **Proses / Kendala** otomatis muncul lagi di laporan berikutnya (dicari dari laporan terakhir, maks. 14 hari ke belakang, termasuk melewati akhir pekan/libur). Karyawan cukup memperbarui status atau menulis progres di teksnya. Item yang sudah **Selesai** berhenti terbawa.
   - Performa Saya: laporan baru langsung terisi pekerjaan lanjutan; bila laporan sudah ada, muncul tombol **Tambahkan**.
   - Halaman absen: tombol **↻ Muat pekerjaan belum selesai** (butuh PIN).
-  - Setiap item menyimpan tanggal mulai → label **Lanjutan · hari ke-N** (oranye bila ≥ 4 hari) di admin, Panel Pantau, dan Performa Saya; ikut di export CSV (kolom Mulai & Hari ke-).
+  - Setiap item menyimpan tanggal mulai → label **Lanjutan · hari ke-N** (oranye bila ≥ 4 hari) di admin, Panel Pantau, dan Performa Saya; ikut di file Excel (kolom Mulai & Hari ke-) dan PDF (kolom Keterangan).
 
 ## Foto lokasi & GPS
 
@@ -87,6 +88,15 @@ Karyawan hanya bisa melihat data & foto miliknya. Sesi berlaku 6 jam; karyawan y
 1. Tempel `Code.gs` baru → jalankan `setup` sekali (izinkan **Google Drive** & **Maps**). Kolom baru ditambahkan otomatis, data lama aman.
 2. Terapkan → Kelola deployment → Edit → **Versi baru** → Terapkan.
 3. Upload `index.html`, `absen.js`, `api.js`, `admin.html`, `admin.js`, `style.css`, `README.md`. **`config.js` tidak perlu diubah.**
+
+## Download Excel & PDF
+
+Tab **Data Absensi** dan **Laporan Kerja** (admin & Panel Pantau) → **Download: Excel (.xlsx) / PDF**, sesuai filter yang sedang ditampilkan.
+
+- **Data Absensi** — Excel: sheet *Data Absensi* (detail, link peta & foto) + *Rekap per Karyawan*. PDF (A4 landscape): rekap + detail.
+- **Laporan Kerja** — Excel: sheet *Laporan Kerja* (sel tanggal/nama/catatan digabung per laporan) + *Ringkasan*. PDF (A4 portrait): ringkasan + detail.
+- Kop berlogo, judul, nama instansi, periode & filter, header berwarna, warna status, kolom beku & filter (Excel), nomor halaman (PDF).
+- Dibuat di browser dengan ExcelJS & jsPDF (dimuat dari jsDelivr saat tombol diklik) — butuh internet.
 
 ## Cache browser
 

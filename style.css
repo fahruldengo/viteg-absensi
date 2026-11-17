@@ -353,3 +353,9 @@ td.act .btn + .btn { margin-left: 4px; }
 .lap-missing { font-size: 13px; color: var(--ink-2); background: var(--warn-soft); padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; }
 .cal-day.has-lap::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .7; margin-top: 1px; }
 @media (max-width: 480px) { .lap-row { grid-template-columns: 16px 1fr 32px; } .lap-row .lap-s { grid-column: 2; grid-row: 2; width: 140px; } .lap-row .lap-del { grid-row: 1; grid-column: 3; } }
+
+/* ---------- Download Excel / PDF ---------- */
+.dl-group { display: inline-flex; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
+.dl-group span { font-size: 12px; font-weight: 700; color: var(--ink-3); padding: 0 10px; text-transform: uppercase; letter-spacing: .05em; }
+.dl-group .btn { border: 0; border-left: 1.5px solid var(--line); border-radius: 0; padding: 8px 12px; }
+.dl-group .btn:hover { background: var(--accent-soft); color: var(--accent); }
